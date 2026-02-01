@@ -1,0 +1,56 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "OT / SCADA Log Record",
+  "description": "Schema for simulated OT/control system security logs and operator/HMI events.",
+  "type": "object",
+  "required": ["event_id","timestamp","event_type","source"],
+  "properties": {
+    "event_id": {"type":"string","description":"Unique event identifier"},
+    "timestamp": {"type":"string","format":"date-time","description":"UTC ISO8601 timestamp"},
+    "event_type": {"type":"string","enum":["operator_login","operator_logout","failed_login","plc_command","config_change","breaker_operation","hmi_action","alarms","ids_alert","file_integrity","process_alert"],"description":"Type of OT/security event"},
+    "source": {"type":"string","description":"Source system (HMI, PLC, Firewall, IDS)"},
+    "user": {"type":"string","description":"Username or service account if applicable"},
+    "success": {"type":"boolean","description":"Whether the action succeeded (if applicable)"},
+    "command": {"type":"string","description":"Command executed (for plc_command/hmi_action)"},
+    "target_device": {"type":"string","description":"Device id the event targeted (e.g., FEEDER-F12, TR-02)"},
+    "ip_address": {"type":"string","format":"ipv4","description":"Source IP address if networked"},
+    "severity": {"type":"string","enum":["info","low","medium","high","critical"],"description":"Log-assigned severity"},
+    "details": {"type":"object","additionalProperties":true,"description":"Arbitrary structured details (payload)"}
+  },
+  "additionalProperties": false,
+
+  "examples": [
+    {
+      "event_id": "evt-0001",
+      "timestamp": "2026-03-01T10:14:59Z",
+      "event_type": "failed_login",
+      "source": "HMI",
+      "user": "operator1",
+      "success": false,
+      "ip_address": "196.1.2.3",
+      "severity": "medium",
+      "details": {"reason":"invalid_password","attempts":1}
+    }
+  ],
+
+  "x:simulation": {
+    "attack_scenarios": {
+      "credential_bruteforce": {
+        "description":"Rapid repeated failed_logins from same IP/user",
+        "parameters":["attempts_per_minute","duration_minutes","source_ip"]
+      },
+      "unauthorized_plc_command": {
+        "description":"PLC command executed without corresponding authorized operator action",
+        "parameters":["command","target_device","timestamp_offset_seconds"]
+      },
+      "replay_attack": {
+        "description":"Repeated replay of previously valid HMI/PLC commands",
+        "parameters":["replay_count","interval_seconds"]
+      }
+    },
+    "correlation_hints": {
+      "tie_by": ["timestamp","target_device","user","ip_address"],
+      "window_seconds": 300
+    }
+  }
+}

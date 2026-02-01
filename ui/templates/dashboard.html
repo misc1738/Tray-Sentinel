@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>SmartGrid Sentinel — Incidents</title>
+    <link rel="stylesheet" href="/static/style.css">
+  </head>
+  <body>
+    <div class="container">
+      <h1>SmartGrid Sentinel — Recent Incidents</h1>
+      <p>Showing up to 100 most recent incidents.</p>
+
+      {% if incidents and incidents|length > 0 %}
+        <table class="incidents">
+          <thead>
+            <tr><th>Time</th><th>ID</th><th>Devices</th><th>Risk</th><th>Score</th><th>Actions</th></tr>
+          </thead>
+          <tbody>
+            {% for it in incidents %}
+            <tr>
+              <td>{{ it.timestamp }}</td>
+              <td>{{ it.id }}</td>
+              <td>{{ it.sensor_ids }}</td>
+              <td>{{ it.risk_label }}</td>
+              <td>{{ it.risk_score }}</td>
+              <td>
+                <button onclick="showDetails('{{ it.id }}')">Details</button>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p>No incidents recorded yet.</p>
+      {% endif %}
+
+      <div id="detail" class="detail" style="display:none">
+        <h2>Incident details</h2>
+        <pre id="detail-json"></pre>
+        <h3>Feedback</h3>
+        <form id="feedback-form" method="post" action="/feedback">
+          <input type="hidden" name="incident_id" id="incident_id" />
+          <label><input type="radio" name="feedback" value="true_positive" checked> True positive</label>
+          <label><input type="radio" name="feedback" value="false_positive"> False positive</label>
+          <br/>
+          <label>By (name): <input type="text" name="feedback_by" /></label>
+          <br/>
+          <button type="submit">Submit feedback</button>
+        </form>
+        <button onclick="hideDetails()">Close</button>
+      </div>
+    </div>
+
+    <script>
+    const incidents = {{ incidents | tojson | safe }};
+    function showDetails(id){
+      const it = incidents.find(x => x.id === id);
+      if(!it) return;
+      document.getElementById('detail-json').textContent = JSON.stringify(it, null, 2);
+      document.getElementById('incident_id').value = id;
+      document.getElementById('detail').style.display = 'block';
+    }
+    function hideDetails(){ document.getElementById('detail').style.display = 'none'; }
+    </script>
+  </body>
+</html>
