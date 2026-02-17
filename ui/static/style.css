@@ -1,9 +1,0 @@
-body{font-family: Arial, Helvetica, sans-serif; background:#f7f9fb; color:#222}
-.container{max-width:1100px;margin:24px auto;padding:18px;background:#fff;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,0.06)}
-h1{margin-top:0}
-.incidents{width:100%;border-collapse:collapse}
-.incidents th,.incidents td{border:1px solid #e6eef5;padding:8px;text-align:left}
-.incidents th{background:#f0f6fb}
-.detail{margin-top:18px;padding:12px;background:#fcfcfe;border:1px solid #e6eef5}
-button{background:#0b6efd;color:#fff;border:none;padding:6px 10px;border-radius:4px;cursor:pointer}
-button:disabled{opacity:0.5}
