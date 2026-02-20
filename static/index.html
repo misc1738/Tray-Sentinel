@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracey's Sentinel — Chain of Custody</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Tracey's Sentinel</h1>
+            <p>Permissioned Digital Chain of Custody</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <section id="scanner">
+            <h2>Scan Evidence QR</h2>
+            <div class="video-container">
+                <video id="video" autoplay playsinline></video>
+                <canvas id="canvas" style="display:none;"></canvas>
+            </div>
+            <button id="start-scan">Start Camera</button>
+            <button id="stop-scan" disabled>Stop Camera</button>
+            <div id="scan-result"></div>
+        </section>
+
+        <section id="evidence" style="display:none;">
+            <h2>Evidence Details</h2>
+            <div id="evidence-meta"></div>
+            <div class="actions">
+                <button id="verify-integrity">Verify Integrity</button>
+                <button id="download-report">Download Report (JSON)</button>
+                <button id="download-bundle">Download Court Bundle (ZIP)</button>
+            </div>
+        </section>
+
+        <section id="timeline" style="display:none;">
+            <h2>Custody Timeline</h2>
+            <div id="timeline-list"></div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Tracey's Sentinel — Prototype for Kenya Digital Forensics</p>
+        </div>
+    </footer>
+
+    <script src="https://unpkg.com/qr-scanner@1.4.2/qr-scanner.umd.min.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

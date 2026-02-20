@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Case Dashboard — Tracey's Sentinel</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Case Dashboard</h1>
+            <p>View all evidence items for a case</p>
+        </div>
+    </header>
+
+    <main class="container">
+        <section id="case-form">
+            <h2>Enter Case ID</h2>
+            <input type="text" id="case-id" placeholder="e.g. KPS-CASE-0001">
+            <button id="load-case">Load Case</button>
+            <div id="case-error" style="display:none;" class="error"></div>
+        </section>
+
+        <section id="case-summary" style="display:none;">
+            <h2>Evidence Items</h2>
+            <table id="evidence-table">
+                <thead>
+                    <tr>
+                        <th>Evidence ID</th>
+                        <th>Description</th>
+                        <th>File Name</th>
+                        <th>SHA‑256</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2026 Tracey's Sentinel — Prototype for Kenya Digital Forensics</p>
+        </div>
+    </footer>
+
+    <script src="case.js"></script>
+</body>
+</html>
