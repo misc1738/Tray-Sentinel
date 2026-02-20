@@ -100,3 +100,27 @@ class EndorseResponse(BaseModel):
 class CaseSummary(BaseModel):
     case_id: str
     evidence_items: list[EvidenceResponse]
+
+
+class EvidenceAuditItem(BaseModel):
+    evidence_id: str
+    file_name: str
+    expected_sha256: str
+    event_count: int
+    last_event_at: Optional[str] = None
+    integrity_failures: int
+    pending_endorsements: int
+    compliance_status: Literal["COMPLIANT", "ATTENTION_REQUIRED"]
+
+
+class CaseAuditResponse(BaseModel):
+    case_id: str
+    generated_at: str
+    chain_valid: bool
+    chain_message: str
+    evidence_count: int
+    total_events: int
+    integrity_failures: int
+    pending_endorsements: int
+    compliant_evidence_count: int
+    evidence_audits: list[EvidenceAuditItem]

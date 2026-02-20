@@ -50,3 +50,65 @@ def build_court_report(
             "notes": "This report is generated from an append-only, hash-chained custody ledger. Any tampering breaks hash continuity and validation.",
         },
     }
+
+
+def build_case_audit_summary(
+    *,
+    case_id: str,
+    evidence_items: list[dict[str, Any]],
+    timelines_by_evidence: dict[str, list[LedgerEvent]],
+    compute_endorsement_status,
+    chain_valid: bool,
+    chain_message: str,
+) -> dict[str, Any]:
+    evidence_audits: list[dict[str, Any]] = []
+    total_events = 0
+    total_integrity_failures = 0
+    total_pending_endorsements = 0
+
+    for evidence in evidence_items:
+        evidence_id = evidence["evidence_id"]
+        events = timelines_by_evidence.get(evidence_id, [])
+        total_events += len(events)
+
+        integrity_failures = sum(1 for e in events if not e.integrity_ok)
+        pending_endorsements = sum(
+            1
+            for e in events
+            if e.action_type != "ENDORSE" and compute_endorsement_status(e)[0] == "PENDING_ENDORSEMENT"
+        )
+
+        total_integrity_failures += integrity_failures
+        total_pending_endorsements += pending_endorsements
+
+        compliance_status = "COMPLIANT"
+        if integrity_failures > 0 or pending_endorsements > 0:
+            compliance_status = "ATTENTION_REQUIRED"
+
+        evidence_audits.append(
+            {
+                "evidence_id": evidence_id,
+                "file_name": evidence["file_name"],
+                "expected_sha256": evidence["sha256"],
+                "event_count": len(events),
+                "last_event_at": events[-1].timestamp if events else None,
+                "integrity_failures": integrity_failures,
+                "pending_endorsements": pending_endorsements,
+                "compliance_status": compliance_status,
+            }
+        )
+
+    compliant_evidence_count = sum(1 for item in evidence_audits if item["compliance_status"] == "COMPLIANT")
+
+    return {
+        "case_id": case_id,
+        "generated_at": utcnow_iso(),
+        "chain_valid": chain_valid,
+        "chain_message": chain_message,
+        "evidence_count": len(evidence_items),
+        "total_events": total_events,
+        "integrity_failures": total_integrity_failures,
+        "pending_endorsements": total_pending_endorsements,
+        "compliant_evidence_count": compliant_evidence_count,
+        "evidence_audits": evidence_audits,
+    }

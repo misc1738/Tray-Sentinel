@@ -15,6 +15,7 @@ from app.bundle import build_court_bundle
 from app.config import get_settings
 from app.ledger import Ledger
 from app.models import (
+    CaseAuditResponse,
     CaseSummary,
     CustodyEventRequest,
     CustodyEventResponse,
@@ -27,7 +28,7 @@ from app.models import (
     VerifyResponse,
 )
 from app.rbac import Action, Principal, require_action
-from app.reporting import build_court_report
+from app.reporting import build_case_audit_summary, build_court_report
 from app.storage import EvidenceRow, EvidenceStore
 from app.utils import sha256_bytes, sha256_file, utcnow_iso
 
@@ -385,3 +386,33 @@ def case_summary(case_id: str, principal: Principal = Depends(get_principal)):
         for r in rows
     ]
     return CaseSummary(case_id=case_id, evidence_items=items)
+
+
+@app.get("/case/{case_id}/audit", response_model=CaseAuditResponse)
+def case_audit(case_id: str, principal: Principal = Depends(get_principal)):
+    try:
+        require_action(principal, Action.VIEW_EVIDENCE)
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+    rows = store.list_by_case(case_id)
+    evidence_items = [
+        {
+            "evidence_id": r.evidence_id,
+            "file_name": r.file_name,
+            "sha256": r.sha256,
+        }
+        for r in rows
+    ]
+    timelines_by_evidence = {r.evidence_id: ledger.get_timeline(r.evidence_id) for r in rows}
+    chain_valid, chain_msg = ledger.validate_chain()
+
+    report = build_case_audit_summary(
+        case_id=case_id,
+        evidence_items=evidence_items,
+        timelines_by_evidence=timelines_by_evidence,
+        compute_endorsement_status=ledger.compute_endorsement_status,
+        chain_valid=chain_valid,
+        chain_message=chain_msg,
+    )
+    return CaseAuditResponse(**report)
