@@ -11,6 +11,7 @@ class Settings:
     ledger_path: Path
     db_path: Path
     evidence_store_dir: Path
+    evidence_key_path: Path
 
 
 def get_settings() -> Settings:
@@ -22,4 +23,5 @@ def get_settings() -> Settings:
         ledger_path=data_dir / "ledger.jsonl",
         db_path=data_dir / "sentinel.db",
         evidence_store_dir=base / "evidence_store",
+        evidence_key_path=data_dir / "keys" / "evidence.fernet.key",
     )

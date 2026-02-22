@@ -113,6 +113,12 @@ When `frontend/dist` exists, FastAPI serves the built React app at `/` with SPA 
 - `GET /health`
 	- Validates entire ledger chain and signatures.
 
+### Security Posture
+
+- `GET /security/posture`
+	- Returns where evidence, metadata, ledger, and key material are stored.
+	- Enumerates active cryptographic controls (at-rest encryption, hashes, signatures, chain linking).
+
 ### Evidence Lifecycle
 
 - `POST /evidence/intake`
@@ -165,7 +171,15 @@ When `frontend/dist` exists, FastAPI serves the built React app at `/` with SPA 
 - SQLite DB: `./data/sentinel.db`
 - Ledger file: `./data/ledger.jsonl`
 - User keys: `./data/keys/<user_id>.ed25519.pem`
+- Evidence encryption key: `./data/keys/evidence.fernet.key`
 - Evidence files: `./evidence_store/<evidence_id>/<file_name>`
+
+### Evidence Encryption at Rest (Enhanced)
+
+- Evidence bytes are now encrypted before writing to disk using Fernet (AES-128-CBC + HMAC-SHA256).
+- Stored evidence files are prefixed with `TSENC1:` and cannot be read as plaintext without the key.
+- Verification and bundle generation decrypt in-process and continue to validate against the original registered SHA-256.
+- Legacy plaintext evidence files remain readable for backward compatibility.
 
 ## Demo Script
 

@@ -14,6 +14,7 @@ from fastapi.staticfiles import StaticFiles
 from app.auth import USERS, get_principal
 from app.bundle import build_court_bundle
 from app.config import get_settings
+from app.evidence_crypto import EvidenceCipher
 from app.ledger import Ledger
 from app.models import (
     CaseAuditResponse,
@@ -31,7 +32,7 @@ from app.models import (
 from app.rbac import Action, Principal, require_action
 from app.reporting import build_case_audit_summary, build_court_report
 from app.storage import EvidenceRow, EvidenceStore
-from app.utils import sha256_bytes, sha256_file, utcnow_iso
+from app.utils import sha256_bytes, utcnow_iso
 
 
 app = FastAPI(title="Tracey's Sentinel", version="0.1.0")
@@ -39,6 +40,7 @@ app = FastAPI(title="Tracey's Sentinel", version="0.1.0")
 settings = get_settings()
 store = EvidenceStore(settings.db_path)
 ledger = Ledger(settings.ledger_path, base_dir=settings.base_dir)
+evidence_cipher = EvidenceCipher(key_path=settings.evidence_key_path)
 store.init()
 frontend_dist = settings.base_dir / "frontend" / "dist"
 
@@ -57,8 +59,12 @@ def _save_evidence_file(evidence_id: str, file_name: str, raw: bytes) -> Path:
     target_dir = settings.evidence_store_dir / evidence_id
     target_dir.mkdir(parents=True, exist_ok=True)
     path = target_dir / file_name
-    path.write_bytes(raw)
+    path.write_bytes(evidence_cipher.encrypt_for_storage(raw))
     return path
+
+
+def _read_evidence_file(file_path: Path) -> bytes:
+    return evidence_cipher.decrypt_from_storage(file_path.read_bytes())
 
 
 @app.get("/health")
@@ -74,6 +80,35 @@ def users():
             {"user_id": user_id, "role": profile["role"], "org_id": profile["org_id"]}
             for user_id, profile in USERS.items()
         ]
+    }
+
+
+@app.get("/security/posture")
+def security_posture(principal: Principal = Depends(get_principal)):
+    try:
+        require_action(principal, Action.VIEW_EVIDENCE)
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+    encryption = evidence_cipher.status()
+    return {
+        "data_locations": {
+            "evidence_store": str(settings.evidence_store_dir),
+            "metadata_db": str(settings.db_path),
+            "ledger_file": str(settings.ledger_path),
+            "user_signing_keys": str(settings.data_dir / "keys"),
+        },
+        "cryptographic_measures": {
+            "evidence_at_rest_encryption": {
+                "enabled": encryption.enabled,
+                "algorithm": encryption.algorithm,
+                "key_path": encryption.key_path,
+                "key_fingerprint_sha256": encryption.key_fingerprint_sha256,
+            },
+            "evidence_integrity": "SHA-256",
+            "ledger_integrity": "hash-chain (prev_hash + record_hash)",
+            "ledger_event_signatures": "Ed25519 per event",
+        },
     }
 
 
@@ -195,7 +230,7 @@ def verify(evidence_id: str, principal: Principal = Depends(get_principal)):
     except KeyError:
         raise HTTPException(status_code=404, detail="evidence not found")
 
-    actual = sha256_file(file_path)
+    actual = sha256_bytes(_read_evidence_file(file_path))
     ok = actual == evidence.sha256
 
     ledger.append_event(
@@ -377,6 +412,7 @@ def download_bundle(evidence_id: str, principal: Principal = Depends(get_princip
         ledger_validation=rep["ledger_validation"],
         ledger_path=settings.ledger_path,
         evidence_file_path=file_path,
+        evidence_encrypted_at_rest=evidence_cipher.status().enabled,
     )
 
     return Response(
@@ -447,7 +483,7 @@ def frontend_root():
 
 @app.get("/{full_path:path}")
 def frontend_fallback(full_path: str):
-    if full_path.startswith(("evidence/", "case/", "auth/", "docs", "openapi", "redoc", "health", "static/")):
+    if full_path.startswith(("evidence/", "case/", "auth/", "security/", "docs", "openapi", "redoc", "health", "static/")):
         raise HTTPException(status_code=404, detail="Not found")
 
     if frontend_dist.exists():

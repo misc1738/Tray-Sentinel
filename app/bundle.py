@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from app.pdf_report import _build_pdf_report
-from app.utils import sha256_file, sha256_bytes
+from app.utils import sha256_bytes
 
 
 def build_court_bundle(
@@ -19,6 +19,7 @@ def build_court_bundle(
     ledger_validation: dict[str, Any],
     ledger_path: Path,
     evidence_file_path: Path,
+    evidence_encrypted_at_rest: bool = False,
 ) -> bytes:
     bundle = io.BytesIO()
     with zipfile.ZipFile(bundle, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -60,7 +61,8 @@ def build_court_bundle(
         manifest = {
             "evidence_file": {
                 "path": str(evidence_file_path.relative_to(evidence_file_path.parents[1])),
-                "sha256": sha256_file(evidence_file_path),
+                "sha256": evidence.get("sha256", ""),
+                "encrypted_at_rest": evidence_encrypted_at_rest,
             },
             "ledger.jsonl": {"sha256": sha256_bytes("".join(ledger_lines).encode("utf-8"))},
             "report.json": {"sha256": sha256_bytes(json.dumps(report, sort_keys=True).encode("utf-8"))},

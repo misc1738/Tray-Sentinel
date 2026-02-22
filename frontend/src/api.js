@@ -41,6 +41,7 @@ async function request(path, options = {}, userId) {
 export const api = {
   health: () => request("/health"),
   users: () => request("/auth/users"),
+  securityPosture: (userId) => request("/security/posture", {}, userId),
   intake: (payload, userId) => request("/evidence/intake", { method: "POST", body: JSON.stringify(payload) }, userId),
   createEvent: (payload, userId) => request("/evidence/event", { method: "POST", body: JSON.stringify(payload) }, userId),
   endorse: (payload, userId) => request("/evidence/endorse", { method: "POST", body: JSON.stringify(payload) }, userId),

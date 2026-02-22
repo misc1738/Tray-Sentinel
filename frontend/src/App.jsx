@@ -59,6 +59,7 @@ export default function App() {
   const [users, setUsers] = useState([]);
   const [userId, setUserId] = useState("auditor1");
   const [health, setHealth] = useState(null);
+  const [securityPosture, setSecurityPosture] = useState(null);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -102,6 +103,17 @@ export default function App() {
       }
     })();
   }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const posture = await api.securityPosture(userId);
+        setSecurityPosture(posture);
+      } catch {
+        setSecurityPosture(null);
+      }
+    })();
+  }, [userId]);
 
   function clearNotice() {
     setMessage("");
@@ -255,6 +267,9 @@ export default function App() {
           </motion.a>
           <motion.a href="#case" whileHover={{ y: -2, opacity: 1 }} whileTap={{ scale: 0.98 }}>
             Case Audit
+          </motion.a>
+          <motion.a href="#security" whileHover={{ y: -2, opacity: 1 }} whileTap={{ scale: 0.98 }}>
+            Security
           </motion.a>
         </nav>
         <div className="nav-actions">
@@ -535,6 +550,57 @@ export default function App() {
                 </tbody>
               </table>
             </div>
+          )}
+        </motion.section>
+
+        <motion.section id="security" className="panel wide" variants={panelAnim} whileHover={{ y: -2 }}>
+          <h3>Security Posture</h3>
+          {!securityPosture && <p className="muted">Security posture unavailable for selected operator.</p>}
+          {securityPosture && (
+            <>
+              <div className="audit-grid">
+                <p>Evidence Integrity: {securityPosture.cryptographic_measures?.evidence_integrity}</p>
+                <p>Ledger Integrity: {securityPosture.cryptographic_measures?.ledger_integrity}</p>
+                <p>Event Signatures: {securityPosture.cryptographic_measures?.ledger_event_signatures}</p>
+                <p>
+                  At-rest Encryption: {String(
+                    securityPosture.cryptographic_measures?.evidence_at_rest_encryption?.enabled ?? false
+                  )}
+                </p>
+              </div>
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Data Asset</th>
+                      <th>Storage Path</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Evidence Files</td>
+                      <td>{securityPosture.data_locations?.evidence_store}</td>
+                    </tr>
+                    <tr>
+                      <td>Evidence Metadata DB</td>
+                      <td>{securityPosture.data_locations?.metadata_db}</td>
+                    </tr>
+                    <tr>
+                      <td>Ledger JSONL</td>
+                      <td>{securityPosture.data_locations?.ledger_file}</td>
+                    </tr>
+                    <tr>
+                      <td>User Signing Keys</td>
+                      <td>{securityPosture.data_locations?.user_signing_keys}</td>
+                    </tr>
+                    <tr>
+                      <td>Evidence Encryption Key</td>
+                      <td>{securityPosture.cryptographic_measures?.evidence_at_rest_encryption?.key_path}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </motion.section>
 
