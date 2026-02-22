@@ -69,6 +69,43 @@ Open:
 - Swagger UI: http://127.0.0.1:8000/docs
 - Health: http://127.0.0.1:8000/health
 
+## React Frontend (New)
+
+A full React operations console now lives in `frontend/` and is wired to the FastAPI backend.
+
+### Run Frontend in Development
+
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Frontend dev URL:
+
+- http://127.0.0.1:5173
+
+The Vite dev server proxies API calls (`/health`, `/auth`, `/evidence`, `/case`) to FastAPI at `http://127.0.0.1:8000`.
+
+### Build Frontend for Production Serving via FastAPI
+
+```powershell
+cd frontend
+npm run build
+```
+
+When `frontend/dist` exists, FastAPI serves the built React app at `/` with SPA fallback routing.
+
+### Frontend Features
+
+- Operator selection from backend identities (`/auth/users`)
+- Ledger health status
+- Evidence intake (file upload + base64 conversion)
+- Custody event recording + endorsement options
+- Separate endorsement workflow
+- Evidence timeline view, integrity verify, report/bundle download, QR open
+- Case summary + case audit dashboard
+
 ## API Reference
 
 ### Health

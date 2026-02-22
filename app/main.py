@@ -7,10 +7,11 @@ from pathlib import Path
 
 import qrcode
 from fastapi import Depends, FastAPI, HTTPException
-from fastapi.responses import Response
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
-from app.auth import get_principal
+from app.auth import USERS, get_principal
 from app.bundle import build_court_bundle
 from app.config import get_settings
 from app.ledger import Ledger
@@ -39,6 +40,15 @@ settings = get_settings()
 store = EvidenceStore(settings.db_path)
 ledger = Ledger(settings.ledger_path, base_dir=settings.base_dir)
 store.init()
+frontend_dist = settings.base_dir / "frontend" / "dist"
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://127.0.0.1:5173", "http://localhost:5173", "http://127.0.0.1:4173", "http://localhost:4173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -55,6 +65,16 @@ def _save_evidence_file(evidence_id: str, file_name: str, raw: bytes) -> Path:
 def health():
     ok, msg = ledger.validate_chain()
     return {"status": "ok", "ledger_chain_valid": ok, "ledger": msg}
+
+
+@app.get("/auth/users")
+def users():
+    return {
+        "users": [
+            {"user_id": user_id, "role": profile["role"], "org_id": profile["org_id"]}
+            for user_id, profile in USERS.items()
+        ]
+    }
 
 
 @app.post("/evidence/intake", response_model=EvidenceResponse)
@@ -416,3 +436,27 @@ def case_audit(case_id: str, principal: Principal = Depends(get_principal)):
         chain_message=chain_msg,
     )
     return CaseAuditResponse(**report)
+
+
+@app.get("/")
+def frontend_root():
+    if frontend_dist.exists():
+        return FileResponse(frontend_dist / "index.html")
+    return FileResponse("static/index.html")
+
+
+@app.get("/{full_path:path}")
+def frontend_fallback(full_path: str):
+    if full_path.startswith(("evidence/", "case/", "auth/", "docs", "openapi", "redoc", "health", "static/")):
+        raise HTTPException(status_code=404, detail="Not found")
+
+    if frontend_dist.exists():
+        asset_path = frontend_dist / full_path
+        if asset_path.exists() and asset_path.is_file():
+            return FileResponse(asset_path)
+        return FileResponse(frontend_dist / "index.html")
+
+    legacy_page = settings.base_dir / "static" / full_path
+    if legacy_page.exists() and legacy_page.is_file():
+        return FileResponse(legacy_page)
+    return FileResponse("static/index.html")
