@@ -1,9 +1,6 @@
 # 🎨 Tracey's Sentinel — Visual Component Guide
 
 ## Quick Reference for UI Components
-
----
-
 ## 🎯 Button Styles
 
 ```html
@@ -74,7 +71,6 @@
 ---
 
 ## 📝 Form Layouts
-
 ### Single Field
 ```html
 <div class="form-group">

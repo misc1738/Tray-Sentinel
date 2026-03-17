@@ -378,7 +378,7 @@ Current coverage includes:
 
 ---
 
-## 11) Production hardening roadmap
+ 11) Production hardening roadmap
 
 Recommended next steps before real deployment:
 
@@ -391,7 +391,6 @@ Recommended next steps before real deployment:
 - Multi-region backup and disaster recovery playbooks
 - Formal compliance mapping and threat modeling
 
----
 
 ## License / status
 
