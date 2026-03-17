@@ -11,6 +11,8 @@ export default defineConfig({
       "/security": "http://127.0.0.1:8000",
       "/evidence": "http://127.0.0.1:8000",
       "/case": "http://127.0.0.1:8000",
+      "/compliance": "http://127.0.0.1:8000",
+      "/monitoring": "http://127.0.0.1:8000",
     },
   },
 });

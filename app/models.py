@@ -124,3 +124,134 @@ class CaseAuditResponse(BaseModel):
     pending_endorsements: int
     compliant_evidence_count: int
     evidence_audits: list[EvidenceAuditItem]
+
+
+# ===== COMPLIANCE FRAMEWORK MODELS =====
+class ComplianceFramework(BaseModel):
+    """Supported compliance frameworks"""
+    framework_id: str  # ISO27001, SOC2, HIPAA, PCIDSS
+    name: str
+    description: str
+    total_controls: int
+    icon: str
+
+
+class ComplianceControl(BaseModel):
+    """Individual control within a framework"""
+    control_id: str
+    framework_id: str
+    title: str
+    description: str
+    status: Literal["PASSING", "FAILING", "NEEDS_CHANGES", "IN_REVIEW", "PENDING"]
+    evidence_count: int
+    last_assessed: Optional[str] = None
+
+
+class ComplianceStatus(BaseModel):
+    """Overall compliance posture"""
+    framework_id: str
+    name: str
+    total_controls: int
+    passing_controls: int
+    failing_controls: int
+    needs_changes: int
+    compliance_percentage: float
+    last_updated: str
+    risk_level: Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+
+
+class ComplianceDashboard(BaseModel):
+    """Aggregate compliance dashboard"""
+    generated_at: str
+    overall_compliance: float
+    frameworks: list[ComplianceStatus]
+    critical_findings: int
+    passing_controls: int
+    total_controls: int
+    trend: Literal["IMPROVING", "STABLE", "DECLINING"]
+
+
+# ===== SECURITY METRICS & MONITORING =====
+class SecurityAlert(BaseModel):
+    """Security alert/incident"""
+    alert_id: str
+    severity: Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+    alert_type: str  # integrity_violation, unauthorized_access, chain_break, etc
+    title: str
+    description: str
+    evidence_id: Optional[str] = None
+    case_id: Optional[str] = None
+    actor_user_id: Optional[str] = None
+    actor_org_id: Optional[str] = None
+    timestamp: str
+    status: Literal["OPEN", "ACKNOWLEDGED", "RESOLVED", "FALSE_POSITIVE"]
+    resolved_at: Optional[str] = None
+
+
+class SecurityMetrics(BaseModel):
+    """Security KPIs and metrics"""
+    total_alerts: int
+    critical_alerts: int
+    high_alerts: int
+    open_alerts: int
+    resolved_alerts: int
+    false_positives: int
+    integrity_violations: int
+    unauthorized_access_attempts: int
+    chain_break_incidents: int
+    avg_resolution_time_hours: float
+    mttr: float  # Mean Time To Resolution
+
+
+class IncidentResponse(BaseModel):
+    """Incident details"""
+    incident_id: str
+    alert_id: str
+    severity: Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+    title: str
+    description: str
+    root_cause: Optional[str] = None
+    remediation_steps: list[str] = []
+    timestamp: str
+    resolved_at: Optional[str] = None
+    resolution_notes: Optional[str] = None
+    assigned_to: Optional[str] = None
+
+
+class AccessLog(BaseModel):
+    """Audit log for access and operations"""
+    log_id: str
+    user_id: str
+    action: str
+    resource_type: str  # evidence, case, report, etc
+    resource_id: str
+    timestamp: str
+    status: Literal["SUCCESS", "FAILURE", "DENIED"]
+    ip_address: Optional[str] = None
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
+class SecurityPosture(BaseModel):
+    """Overall security posture"""
+    generated_at: str
+    overall_risk: Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+    encryption_status: str
+    key_rotation: str
+    access_control_violations: int
+    chain_integrity_violations: int
+    compliance_score: float
+    incident_response_time_avg: float
+
+
+class MonitoringDashboard(BaseModel):
+    """Real-time monitoring dashboard"""
+    generated_at: str
+    active_sessions: int
+    total_alerts_today: int
+    critical_incidents: int
+    uptime_percentage: float
+    last_backup: str
+    chain_validity: bool
+    evidence_integrity_ok: bool
+    recent_alerts: list[SecurityAlert]
+    metrics: SecurityMetrics

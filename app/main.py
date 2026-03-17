@@ -13,22 +13,27 @@ from fastapi.staticfiles import StaticFiles
 
 from app.auth import USERS, get_principal
 from app.bundle import build_court_bundle
+from app.compliance import ComplianceTracker
 from app.config import get_settings
 from app.evidence_crypto import EvidenceCipher
 from app.ledger import Ledger
 from app.models import (
     CaseAuditResponse,
     CaseSummary,
+    ComplianceDashboard,
     CustodyEventRequest,
     CustodyEventResponse,
     EndorseRequest,
     EndorseResponse,
     EvidenceIntakeRequest,
     EvidenceResponse,
+    MonitoringDashboard,
     ReportResponse,
+    SecurityAlert,
     TimelineResponse,
     VerifyResponse,
 )
+from app.monitoring import SecurityMonitor
 from app.rbac import Action, Principal, require_action
 from app.reporting import build_case_audit_summary, build_court_report
 from app.storage import EvidenceRow, EvidenceStore
@@ -41,6 +46,8 @@ settings = get_settings()
 store = EvidenceStore(settings.db_path)
 ledger = Ledger(settings.ledger_path, base_dir=settings.base_dir)
 evidence_cipher = EvidenceCipher(key_path=settings.evidence_key_path)
+compliance_tracker = ComplianceTracker(settings.db_path)
+security_monitor = SecurityMonitor(settings.db_path)
 store.init()
 frontend_dist = settings.base_dir / "frontend" / "dist"
 
@@ -472,6 +479,163 @@ def case_audit(case_id: str, principal: Principal = Depends(get_principal)):
         chain_message=chain_msg,
     )
     return CaseAuditResponse(**report)
+
+
+# ===== COMPLIANCE ENDPOINTS =====
+@app.get("/compliance/dashboard", response_model=ComplianceDashboard)
+def get_compliance_dashboard(principal: Principal = Depends(get_principal)):
+    """Get overall compliance dashboard with all frameworks."""
+    try:
+        require_action(principal, Action.VIEW_EVIDENCE)
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+    return compliance_tracker.get_compliance_dashboard()
+
+
+@app.get("/compliance/frameworks")
+def get_frameworks(principal: Principal = Depends(get_principal)):
+    """Get all supported compliance frameworks."""
+    try:
+        require_action(principal, Action.VIEW_EVIDENCE)
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+    frameworks = compliance_tracker.get_frameworks()
+    return {"frameworks": [f.dict() for f in frameworks]}
+
+
+@app.get("/compliance/{framework_id}/controls")
+def get_controls(framework_id: str, principal: Principal = Depends(get_principal)):
+    """Get controls for a specific framework."""
+    try:
+        require_action(principal, Action.VIEW_EVIDENCE)
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+    controls = compliance_tracker.get_framework_controls(framework_id)
+    if not controls:
+        raise HTTPException(status_code=404, detail="framework not found")
+    return {"framework_id": framework_id, "controls": [c.dict() for c in controls]}
+
+
+@app.get("/compliance/{framework_id}/status")
+def get_framework_status(framework_id: str, principal: Principal = Depends(get_principal)):
+    """Get compliance status for a specific framework."""
+    try:
+        require_action(principal, Action.VIEW_EVIDENCE)
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+    try:
+        status = compliance_tracker.get_compliance_status(framework_id)
+        return status.dict()
+    except ValueError:
+        raise HTTPException(status_code=404, detail="framework not found")
+
+
+# ===== MONITORING & ALERTS ENDPOINTS =====
+@app.get("/monitoring/dashboard", response_model=MonitoringDashboard)
+def get_monitoring_dashboard(principal: Principal = Depends(get_principal)):
+    """Get real-time security monitoring dashboard."""
+    try:
+        require_action(principal, Action.VIEW_EVIDENCE)
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+    return security_monitor.get_monitoring_dashboard()
+
+
+@app.get("/security/alerts")
+def get_alerts(
+    principal: Principal = Depends(get_principal),
+    status: str = None,
+    severity: str = None,
+    limit: int = 50,
+):
+    """Get security alerts with optional filtering."""
+    try:
+        require_action(principal, Action.VIEW_EVIDENCE)
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+    alerts = security_monitor.get_alerts(limit=limit, status=status, severity=severity)
+    return {
+        "alerts": [a.dict() for a in alerts],
+        "total": len(alerts),
+    }
+
+
+@app.post("/security/alerts/{alert_id}/acknowledge")
+def acknowledge_alert(alert_id: str, principal: Principal = Depends(get_principal)):
+    """Acknowledge a security alert."""
+    try:
+        require_action(principal, Action.VIEW_EVIDENCE)
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+    security_monitor.acknowledge_alert(alert_id)
+    return {"alert_id": alert_id, "status": "ACKNOWLEDGED"}
+
+
+@app.post("/security/alerts/{alert_id}/resolve")
+def resolve_alert(
+    alert_id: str,
+    principal: Principal = Depends(get_principal),
+    mark_false_positive: bool = False,
+):
+    """Resolve a security alert."""
+    try:
+        require_action(principal, Action.VIEW_EVIDENCE)
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+    security_monitor.resolve_alert(alert_id, mark_false_positive=mark_false_positive)
+    status = "FALSE_POSITIVE" if mark_false_positive else "RESOLVED"
+    return {"alert_id": alert_id, "status": status}
+
+
+@app.get("/security/metrics")
+def get_security_metrics(principal: Principal = Depends(get_principal)):
+    """Get security KPIs and metrics."""
+    try:
+        require_action(principal, Action.VIEW_EVIDENCE)
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+    metrics = security_monitor.get_security_metrics()
+    return metrics.dict()
+
+
+@app.get("/security/posture-assessment")
+def get_security_assessment(principal: Principal = Depends(get_principal)):
+    """Get detailed security posture assessment."""
+    try:
+        require_action(principal, Action.VIEW_EVIDENCE)
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+    posture = security_monitor.get_security_posture()
+    return posture.dict()
+
+
+@app.get("/security/audit-logs")
+def get_audit_logs(
+    principal: Principal = Depends(get_principal),
+    user_id: str = None,
+    limit: int = 100,
+):
+    """Get audit logs for access and operations."""
+    try:
+        require_action(principal, Action.VIEW_EVIDENCE)
+    except PermissionError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+    logs = security_monitor.get_access_logs(user_id=user_id, limit=limit)
+    return {
+        "logs": [l.dict() for l in logs],
+        "total": len(logs),
+    }
 
 
 @app.get("/")

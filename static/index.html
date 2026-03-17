@@ -3,52 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tracey's Sentinel — Chain of Custody</title>
+    <meta name="description" content="Tracey's Sentinel - Forensic Evidence Chain of Custody Scanner">
+    <meta name="theme-color" content="#00d9ff">
+    <title>Tracey's Sentinel — Forensic Evidence Scanner</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <header>
         <div class="container">
-            <h1>Tracey's Sentinel</h1>
-            <p>Permissioned Digital Chain of Custody</p>
+            <h1>🔐 Tracey's Sentinel</h1>
+            <p>Permissioned Digital Chain of Custody — <strong>Forensic Evidence Integrity Platform</strong></p>
         </div>
     </header>
 
     <main class="container">
+        <!-- Evidence Scanner Section -->
         <section id="scanner">
-            <h2>Scan Evidence QR</h2>
+            <h2>🎯 Scan Evidence QR Code</h2>
+            <p>Use your device camera to scan evidence QR codes and verify chain of custody integrity.</p>
+            
             <div class="video-container">
                 <video id="video" autoplay playsinline></video>
-                <canvas id="canvas" style="display:none;"></canvas>
+                <canvas id="canvas"></canvas>
             </div>
-            <button id="start-scan">Start Camera</button>
-            <button id="stop-scan" disabled>Stop Camera</button>
+
+            <div class="scanner-controls">
+                <button id="start-scan" class="primary">📷 Start Camera</button>
+                <button id="stop-scan" disabled>🛑 Stop Camera</button>
+            </div>
+
             <div id="scan-result"></div>
         </section>
 
-        <section id="evidence" style="display:none;">
-            <h2>Evidence Details</h2>
+        <!-- Evidence Details Section -->
+        <section id="evidence" style="display: none;">
+            <h2>📋 Evidence Details</h2>
             <div id="evidence-meta"></div>
+            
             <div class="actions">
-                <button id="verify-integrity">Verify Integrity</button>
-                <button id="download-report">Download Report (JSON)</button>
-                <button id="download-bundle">Download Court Bundle (ZIP)</button>
+                <button id="verify-integrity" class="success">✓ Verify Integrity</button>
+                <button id="download-report" class="info">📥 Download Report (JSON)</button>
+                <button id="download-bundle" class="info">📦 Download Court Bundle (ZIP)</button>
+                <button id="back-scan" class="ghost">← Back to Scanner</button>
             </div>
         </section>
 
-        <section id="timeline" style="display:none;">
-            <h2>Custody Timeline</h2>
-            <div id="timeline-list"></div>
+        <!-- Custody Timeline Section -->
+        <section id="timeline" style="display: none;">
+            <h2>⏱️ Chain of Custody Timeline</h2>
+            <p>Complete chronological record of evidence handling, custody transfers, and organizational endorsements.</p>
+            <ol id="timeline-list"></ol>
         </section>
     </main>
 
-    <footer>
-        <div class="container">
-            <p>&copy; 2026 Tracey's Sentinel — Prototype for Kenya Digital Forensics</p>
-        </div>
-    </footer>
-
     <script src="https://unpkg.com/qr-scanner@1.4.2/qr-scanner.umd.min.js"></script>
-    <script src="app.js"></script>
+    <script src="app.js" defer></script>
+    <script src="case.js" defer></script>
 </body>
 </html>
