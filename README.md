@@ -70,14 +70,45 @@ Tracey's Sentinel is a FastAPI + React system that captures evidence intake, rec
 - `app/bundle.py`, `app/pdf_report.py`
   - Court bundle and PDF generation
 
-### Frontend (React + Vite)
+### Backend Enhancements (NEW)
 
-- `frontend/src/App.jsx`
-  - Animated operations console, evidence/case/security workflows
-- `frontend/src/api.js`
-  - API client + operator header wiring
-- `frontend/src/styles.css`
-  - Premium visual theme + motion effects
+**Advanced Audit Logging** (`app/audit_logger.py`)
+- Flexible audit event logging with query & filtering
+- Query by event type, actor, resource, status, time range
+- Compliance reporting from audit trails
+- Actor activity tracking
+
+**Search & Filtering** (`app/search.py`)
+- Full-text search for evidence and cases
+- Advanced filtering by case, status, date range
+- Related evidence discovery
+- Search index statistics
+
+**Rate Limiting** (`app/rate_limiter.py`)
+- Per-IP rate limiting (100 requests/min)
+- Configurable thresholds
+- Automatic cleanup of old records
+
+**Webhooks** (`app/webhooks.py`)
+- Event-driven webhook subscriptions
+- Support for evidence, custody, endorsement, verification events
+- Delivery tracking and retry logic
+- Event filtering by organization
+
+**Performance Metrics** (`app/metrics.py`)
+- API performance tracking (latency, status codes)
+- Endpoint statistics and slow query detection
+- System health monitoring
+- Custom metric recording
+
+### Frontend (Static)
+
+- `static/index.html`
+  - Modern web UI with responsive design
+- `static/app.js`, `static/case.js`
+  - Evidence intake, case management, operations console
+- `static/style.css`
+  - Premium visual theme with animations
 
 ### High-level flow
 
@@ -85,9 +116,12 @@ Tracey's Sentinel is a FastAPI + React system that captures evidence intake, rec
 2. Backend computes SHA-256 of plaintext bytes
 3. Evidence is encrypted and written to evidence store
 4. Metadata is written to SQLite
-5. Signed `INTAKE` event is appended to ledger JSONL
-6. Later custody events/endorsements are appended as immutable rows
-7. Verify/report/bundle operations read + decrypt evidence as required
+5. Evidence is indexed for search
+6. Signed `INTAKE` event is appended to ledger JSONL
+7. Audit event is logged
+8. Webhook subscribers are notified
+9. Later custody events/endorsements are appended as immutable rows
+10. Verify/report/bundle operations read + decrypt evidence as required
 
 ---
 

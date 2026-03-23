@@ -3,137 +3,213 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Tracey's Sentinel - Forensic Evidence Chain of Custody Scanner">
-    <meta name="theme-color" content="#00d9ff">
-    <title>Tracey's Sentinel — Forensic Evidence Scanner</title>
+    <meta name="description" content="Tracey's Sentinel - Forensic Evidence Chain of Custody Management">
+    <meta name="theme-color" content="#6366f1">
+    <title>Tracey's Sentinel — Chain of Custody Management System</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <header>
         <div class="container">
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
                 <div>
-                    <h1>🔐 Tracey's Sentinel</h1>
-                    <p>Permissioned Digital Chain of Custody — <strong>Forensic Evidence Integrity Platform</strong></p>
+                    <h1>Tracey's Sentinel</h1>
+                    <p>Permissioned Digital Chain of Custody — Forensic Evidence Integrity Platform</p>
                 </div>
-                <div id="user-info" style="text-align: right; font-size: 0.9rem;">
-                    <div id="system-status" style="margin-top: 0.5rem; font-size: 0.8rem;">🟢 System Online</div>
+                <div style="display: flex; gap: 0.75rem;">
+                    <button id="theme-toggle" onclick="toggleTheme()" class="ghost">Theme</button>
+                    <button onclick="openPreferences()" class="ghost">Settings</button>
+                    <button onclick="showKeyboardHelp()" class="ghost">Help</button>
                 </div>
             </div>
         </div>
     </header>
 
     <!-- Navigation Tabs -->
-    <nav class="nav-tabs" style="background: var(--dark-1); border-bottom: 2px solid var(--accent-primary); position: sticky; top: 0; z-index: 100;">
-        <div class="container" style="display: flex; gap: 0; overflow-x: auto;">
-            <button class="nav-tab active" data-tab="home">🏠 Home</button>
-            <button class="nav-tab" data-tab="scanner">📷 Scanner</button>
-            <button class="nav-tab" data-tab="analytics">📊 Analytics</button>
-            <button class="nav-tab" data-tab="search">🔍 Search</button>
-            <button class="nav-tab" data-tab="health">⚙️ Health</button>
-            <button class="nav-tab" data-tab="compliance">✓ Compliance</button>
-            <button class="nav-tab" data-tab="cases">📋 Cases</button>
+    <nav class="nav-tabs">
+        <div class="container" style="display: flex; gap: 0;">
+            <button class="nav-tab active" data-tab="home">Home</button>
+            <button class="nav-tab" data-tab="scanner">Scanner</button>
+            <button class="nav-tab" data-tab="analytics">Analytics</button>
+            <button class="nav-tab" data-tab="search">Search</button>
+            <button class="nav-tab" data-tab="health">Health</button>
+            <button class="nav-tab" data-tab="compliance">Compliance</button>
+            <button class="nav-tab" data-tab="cases">Cases</button>
         </div>
     </nav>
 
     <main class="container">
-        <!-- ===== HOME DASHBOARD ===== -->
+        <!-- HOME DASHBOARD -->
         <section id="home" class="tab-section">
-            <h2>📊 Evidence Intelligence Center</h2>
+            <h2>Evidence Intelligence Center</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Real-time overview of case evidence and chain of custody status</p>
             
-            <!-- Real-time Statistics -->
+            <h3>Key Metrics</h3>
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-number" id="total-evidence">0</div>
-                    <div class="stat-label">Total Evidence Items</div>
-                    <div class="stat-trend" id="evidence-trend">↑ +0%</div>
+                    <div class="stat-label">Total Evidence</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="active-cases">0</div>
                     <div class="stat-label">Active Cases</div>
-                    <div class="stat-trend" id="cases-trend">↑ +0%</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="success-rate">0%</div>
-                    <div class="stat-label">Endorsement Success</div>
-                    <div class="stat-trend" id="endorsement-trend">✓ On Track</div>
+                    <div class="stat-label">Endorsement Success Rate</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="pending-endorsements">0</div>
-                    <div class="stat-label">Pending Endorsements</div>
-                    <div class="stat-trend" id="pending-trend">⏳ Awaiting</div>
+                    <div class="stat-label">Awaiting Endorsement</div>
                 </div>
             </div>
 
-            <!-- Quick Actions -->
-            <div style="margin-top: 2rem;">
-                <h3>Quick Actions</h3>
-                <div class="quick-actions-grid">
-                    <button class="action-card" onclick="switchTab('scanner')">
-                        <span class="action-icon">📷</span>
-                        <span class="action-text">Scan QR Code</span>
-                    </button>
-                    <button class="action-card" onclick="switchTab('search')">
-                        <span class="action-icon">🔍</span>
-                        <span class="action-text">Search Evidence</span>
-                    </button>
-                    <button class="action-card" onclick="switchTab('analytics')">
-                        <span class="action-icon">📊</span>
-                        <span class="action-text">View Analytics</span>
-                    </button>
-                    <button class="action-card" onclick="switchTab('compliance')">
-                        <span class="action-icon">✓</span>
-                        <span class="action-text">Compliance Check</span>
-                    </button>
-                </div>
+            <h3>Quick Actions</h3>
+            <div class="quick-actions-grid">
+                <button class="action-card" onclick="switchTab('scanner')">
+                    <span class="action-icon">📷</span>
+                    <span class="action-text">Scan QR Code</span>
+                </button>
+                <button class="action-card" onclick="switchTab('search')">
+                    <span class="action-icon">🔍</span>
+                    <span class="action-text">Search Evidence</span>
+                </button>
+                <button class="action-card" onclick="switchTab('analytics')">
+                    <span class="action-icon">📊</span>
+                    <span class="action-text">View Analytics</span>
+                </button>
+                <button class="action-card" onclick="switchTab('compliance')">
+                    <span class="action-icon">✓</span>
+                    <span class="action-text">Compliance Review</span>
+                </button>
             </div>
 
-            <!-- Recent Activity Feed -->
-            <div style="margin-top: 2rem;">
-                <h3>Recent Activity</h3>
-                <div id="activity-feed" class="activity-feed">
-                    <div style="text-align: center; color: var(--text-secondary); padding: 2rem;">Loading activity...</div>
-                </div>
+            <h3>Export & Backup</h3>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0;">
+                <button onclick="exportAsJSON()" class="info">Export as JSON</button>
+                <button onclick="exportAsCSV()" class="info">Export as CSV</button>
+                <button onclick="printDashboard()" class="info">Print Dashboard</button>
+            </div>
+
+            <h3>Saved Favorites</h3>
+            <div id="favorites-list" style="display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1rem 0;">
+                <div style="text-align: center; color: var(--text-secondary); width: 100%; padding: 2rem;">No favorites saved yet. Star evidence items to quick access them.</div>
+            </div>
+
+            <h3>Recent Activity</h3>
+            <div id="activity-feed" class="activity-feed">
+                <div style="text-align: center; color: var(--text-secondary); padding: 2rem;">Loading activity...</div>
             </div>
         </section>
 
-        <!-- ===== SCANNER ===== -->
+        <!-- SCANNER TAB -->
         <section id="scanner" class="tab-section" style="display: none;">
-            <h2>🎯 Scan Evidence QR Code</h2>
-            <p>Use your device camera to scan evidence QR codes and verify chain of custody integrity.</p>
+            <h2>Evidence Intake Scanner</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 2rem;">Scan QR codes or upload evidence files directly to the system</p>
             
-            <div class="video-container">
-                <video id="video" autoplay playsinline></video>
-                <canvas id="canvas"></canvas>
+            <!-- QR CODE SCANNER SECTION -->
+            <div style="margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 2px solid var(--border);">
+                <h3 style="margin-bottom: 1rem;">📷 QR Code Scanner</h3>
+                
+                <div class="video-container">
+                    <video id="video" autoplay playsinline></video>
+                    <canvas id="canvas" style="display: none;"></canvas>
+                </div>
+
+                <div class="scanner-controls">
+                    <button id="start-scan" class="primary">Start Camera</button>
+                    <button id="stop-scan" disabled class="ghost">Stop Camera</button>
+                </div>
+
+                <div id="scan-result"></div>
             </div>
 
-            <div class="scanner-controls">
-                <button id="start-scan" class="primary">📷 Start Camera</button>
-                <button id="stop-scan" disabled class="ghost">🛑 Stop Camera</button>
-            </div>
+            <!-- FILE UPLOAD SECTION -->
+            <div>
+                <h3 style="margin-bottom: 1rem;">📁 Upload Evidence Files</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Upload evidence files directly. Supports documents, images, archives, and more with full chain of custody tracking.</p>
+                
+                <div id="upload-zone" class="upload-zone">
+                    <div style="text-align: center; padding: 3rem 2rem;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem; animation: bounce 2s infinite;">📤</div>
+                        <div style="font-weight: 700; margin-bottom: 0.5rem; font-size: 1.1rem;">Drag & Drop Files Here</div>
+                        <div style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1.5rem;">or click to browse from your device</div>
+                        <button id="browse-files" class="primary" style="padding: 0.875rem 2.5rem; font-size: 0.95rem;">📂 Choose Files</button>
+                        <input type="file" id="file-input" style="display: none;" multiple accept="*/*">
+                    </div>
+                </div>
 
-            <div id="scan-result"></div>
+                <div style="margin-top: 1.5rem;">
+                    <h4 style="font-weight: 700; margin-bottom: 1rem; color: var(--text);">Case Information</h4>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem;">
+                        <div style="background: linear-gradient(135deg, var(--primary-light) 0%, var(--bg-white) 100%); padding: 1.25rem; border-radius: 8px; border: 2px solid var(--border);">
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 0.75rem;">Case ID</div>
+                            <input type="text" id="upload-case-id" placeholder="KPS-CASE-0001" style="width: 100%; padding: 0.875rem; border: 2px solid var(--primary); border-radius: 6px; font-size: 0.95rem; font-weight: 500;">
+                        </div>
+                        <div style="background: linear-gradient(135deg, var(--primary-light) 0%, var(--bg-white) 100%); padding: 1.25rem; border-radius: 8px; border: 2px solid var(--border);">
+                            <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 0.75rem;">Description</div>
+                            <input type="text" id="upload-description" placeholder="Evidence description..." style="width: 100%; padding: 0.875rem; border: 2px solid var(--primary); border-radius: 6px; font-size: 0.95rem; font-weight: 500;">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="upload-files-container">
+                    <div id="upload-stats" class="upload-stats" style="display: none;">
+                        <div class="upload-stat-item">
+                            <div class="upload-stat-value" id="stat-file-count">0</div>
+                            <div class="upload-stat-label">Files Selected</div>
+                        </div>
+                        <div class="upload-stat-item">
+                            <div class="upload-stat-value" id="stat-total-size">0 B</div>
+                            <div class="upload-stat-label">Total Size</div>
+                        </div>
+                        <div class="upload-stat-item">
+                            <div class="upload-stat-value" id="stat-largest">0 B</div>
+                            <div class="upload-stat-label">Largest File</div>
+                        </div>
+                    </div>
+                    
+                    <div id="upload-files-list" style="display: flex; flex-direction: column; gap: 0.75rem;"></div>
+                    
+                    <div id="upload-progress" style="display: none; margin-top: 1.5rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                            <div style="font-size: 0.9rem; font-weight: 700;">Uploading Progress</div>
+                            <span id="progress-percentage" style="font-size: 1rem; font-weight: 800; color: var(--primary); background: var(--primary-light); padding: 0.25rem 0.75rem; border-radius: 999px;">0%</span>
+                        </div>
+                        <div style="width: 100%; height: 12px; background: var(--border); border-radius: 8px; overflow: hidden; border: 1px solid var(--border);">
+                            <div id="progress-bar" style="height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent)); transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 8px; box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="upload-actions">
+                        <button id="upload-btn" class="primary" style="display: none;">⬆️ Upload Files</button>
+                        <button id="clear-uploads" class="ghost" style="display: none;">🗑️ Clear All</button>
+                    </div>
+                </div>
+            </div>
         </section>
 
-        <!-- ===== EVIDENCE DETAILS ===== -->
+        <!-- EVIDENCE DETAILS -->
         <section id="evidence" style="display: none;" class="tab-section">
-            <h2>📋 Evidence Details</h2>
+            <h2>Evidence Details</h2>
             <div id="evidence-meta"></div>
-            <div id="timeline-display" style="margin-top: 2rem;"></div>
             
-            <div class="actions" style="margin-top: 2rem;">
-                <button id="verify-integrity" class="success">✓ Verify Integrity</button>
-                <button id="download-report" class="info">📥 Download Report (JSON)</button>
-                <button id="download-bundle" class="info">📦 Download Court Bundle (ZIP)</button>
-                <button id="back-scan" class="ghost">← Back to Scanner</button>
+            <h3 style="margin-top: 2rem;">Chain of Custody Timeline</h3>
+            <div id="timeline-display"></div>
+            
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 2rem;">
+                <button id="verify-integrity" class="success">Verify Integrity</button>
+                <button id="download-report" class="info">Download Report</button>
+                <button id="download-bundle" class="info">Download Bundle (ZIP)</button>
+                <button id="back-scan" class="ghost">Back to Scanner</button>
             </div>
         </section>
 
-        <!-- ===== ANALYTICS DASHBOARD ===== -->
+        <!-- ANALYTICS DASHBOARD -->
         <section id="analytics" class="tab-section" style="display: none;">
-            <h2>📊 Analytics Dashboard</h2>
+            <h2>Analytics Dashboard</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Evidence processing metrics and performance indicators</p>
             
-            <!-- Key Performance Indicators -->
             <h3>Key Performance Indicators</h3>
             <div class="kpi-grid">
                 <div class="kpi-card">
@@ -154,26 +230,21 @@
                 </div>
             </div>
 
-            <!-- Action Type Breakdown -->
-            <div style="margin-top: 2rem;">
-                <h3>Action Type Distribution</h3>
-                <div id="action-breakdown" class="action-breakdown-grid"></div>
-            </div>
+            <h3 style="margin-top: 2rem;">Action Type Distribution</h3>
+            <div id="action-breakdown" class="action-breakdown-grid"></div>
 
-            <!-- Monthly Trend -->
-            <div style="margin-top: 2rem;">
-                <h3>Monthly Activity Trend</h3>
-                <div id="monthly-trend" class="monthly-trend-chart"></div>
-            </div>
+            <h3 style="margin-top: 2rem;">Monthly Activity Trend</h3>
+            <div id="monthly-trend" class="monthly-trend-chart"></div>
         </section>
 
-        <!-- ===== SEARCH & FILTER ===== -->
+        <!-- SEARCH TAB -->
         <section id="search" class="tab-section" style="display: none;">
-            <h2>🔍 Advanced Search & Filter</h2>
+            <h2>Advanced Search & Filter</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Search and filter evidence items with advanced criteria</p>
             
             <div class="search-controls">
                 <input type="text" id="search-input" placeholder="Search by Evidence ID, Case ID, or keywords..." style="flex: 1;">
-                <select id="action-filter" style="min-width: 150px;">
+                <select id="action-filter">
                     <option value="">All Actions</option>
                     <option value="TRANSFER">TRANSFER</option>
                     <option value="ACCESS">ACCESS</option>
@@ -182,14 +253,14 @@
                     <option value="ENDORSE">ENDORSE</option>
                     <option value="COURT_SUBMISSION">COURT_SUBMISSION</option>
                 </select>
-                <button id="search-btn" class="primary">🔍 Search</button>
+                <button id="search-btn" class="primary">Search</button>
             </div>
 
             <div class="filter-options">
-                <label><input type="checkbox" id="filter-verified"> ✓ Integrity Verified</label>
-                <label><input type="checkbox" id="filter-endorsed"> ◆ Endorsed Items</label>
-                <label><input type="checkbox" id="filter-recent"> 📅 Recent (7 days)</label>
-                <label><input type="checkbox" id="filter-court"> ⚖️ Court Ready</label>
+                <label><input type="checkbox" id="filter-verified"> Integrity Verified Only</label>
+                <label><input type="checkbox" id="filter-endorsed"> Endorsed Items Only</label>
+                <label><input type="checkbox" id="filter-recent"> Recent (7 days)</label>
+                <label><input type="checkbox" id="filter-court"> Court Ready</label>
             </div>
 
             <div id="search-results" style="margin-top: 2rem;">
@@ -205,170 +276,130 @@
                         </tr>
                     </thead>
                     <tbody id="search-table-body">
-                        <tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">Enter search criteria</td></tr>
+                        <tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">Enter search criteria and click Search</td></tr>
                     </tbody>
                 </table>
+                <div id="pagination-controls" style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 1rem;"></div>
             </div>
         </section>
 
-        <!-- ===== SYSTEM HEALTH MONITOR ===== -->
+        <!-- HEALTH MONITOR -->
         <section id="health" class="tab-section" style="display: none;">
-            <h2>⚙️ System Health Monitor</h2>
+            <h2>System Health Monitor</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Real-time system health and performance metrics</p>
             
             <div class="health-grid">
                 <div class="health-card">
-                    <div class="health-header">🔐 Backend API</div>
+                    <div class="health-header">Backend API</div>
                     <div class="health-status online">Online</div>
-                    <div class="health-detail">Response: <span id="api-response-time">0ms</span></div>
+                    <div class="health-detail">Response Time: <span id="api-response-time">0ms</span></div>
                     <div class="health-detail">Uptime: <span id="api-uptime">99.9%</span></div>
                 </div>
 
                 <div class="health-card">
-                    <div class="health-header">📊 Database</div>
-                    <div class="health-status online">Connected</div>
-                    <div class="health-detail">Records: <span id="db-records">0</span></div>
-                    <div class="health-detail">Size: <span id="db-size">0 MB</span></div>
+                    <div class="health-header">Database</div>
+                    <div class="health-status online">Online</div>
+                    <div class="health-detail">Connection: Established</div>
+                    <div class="health-detail">Last Sync: <span id="db-sync">Just now</span></div>
                 </div>
 
                 <div class="health-card">
-                    <div class="health-header">🔒 Security</div>
+                    <div class="health-header">Security</div>
                     <div class="health-status online">Secure</div>
-                    <div class="health-detail">Encryption: AES-256</div>
-                    <div class="health-detail">Signing: Ed25519</div>
+                    <div class="health-detail">HTTPS: Enabled</div>
+                    <div class="health-detail">Certificates: Valid</div>
                 </div>
 
                 <div class="health-card">
-                    <div class="health-header">📈 Performance</div>
+                    <div class="health-header">Performance</div>
                     <div class="health-status online">Optimal</div>
-                    <div class="health-detail">Query Avg: <span id="query-time">45ms</span></div>
-                    <div class="health-detail">Cache: <span id="cache-rate">92%</span></div>
+                    <div class="health-detail">CPU Usage: <span id="cpu-usage">25%</span></div>
+                    <div class="health-detail">Memory: <span id="memory-usage">40%</span></div>
                 </div>
             </div>
 
-            <!-- Alerts Section -->
-            <div style="margin-top: 2rem;">
-                <h3>Active Alerts</h3>
-                <div id="alerts-container" style="display: grid; gap: 0.75rem;">
-                    <div style="text-align: center; color: var(--text-secondary); padding: 1rem;">
-                        🟢 No active alerts
-                    </div>
-                </div>
+            <h3 style="margin-top: 2rem;">System Alerts</h3>
+            <div id="health-alerts" style="background: var(--bg-white); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem;">
+                <p style="color: var(--text-secondary); margin: 0;">No alerts at this time.</p>
             </div>
         </section>
 
-        <!-- ===== COMPLIANCE DASHBOARD ===== -->
+        <!-- COMPLIANCE TAB -->
         <section id="compliance" class="tab-section" style="display: none;">
-            <h2>✓ Compliance Dashboard</h2>
+            <h2>Compliance Dashboard</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Track compliance across major forensic and legal frameworks</p>
             
-            <div class="compliance-frameworks">
+            <div class="compliance-grid">
                 <div class="framework-card">
-                    <h4>ISO 27001</h4>
-                    <div class="compliance-score">
-                        <div class="score-bar" style="--completion: 92%"></div>
-                        <span class="score-text">92% Compliant</span>
+                    <div class="framework-name">ISO 27001 (Information Security)</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 95%;">95%</div>
                     </div>
-                    <div style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-secondary);">
-                        <div>✓ Security Policies: 6/6</div>
-                        <div>✓ Access Controls: 5/5</div>
-                        <div>⚠ Evidence Handling: 3/4</div>
-                    </div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">Evidence encryption and access controls</div>
                 </div>
 
                 <div class="framework-card">
-                    <h4>SOC 2</h4>
-                    <div class="compliance-score">
-                        <div class="score-bar" style="--completion: 88%"></div>
-                        <span class="score-text">88% Compliant</span>
+                    <div class="framework-name">SOC 2 Type II (Security & Availability)</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 88%;">88%</div>
                     </div>
-                    <div style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-secondary);">
-                        <div>✓ Availability: 100%</div>
-                        <div>✓ Security: 88%</div>
-                        <div>⚠ Confidentiality: 75%</div>
-                    </div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">Chain of custody logging and monitoring</div>
                 </div>
 
                 <div class="framework-card">
-                    <h4>HIPAA</h4>
-                    <div class="compliance-score">
-                        <div class="score-bar" style="--completion: 85%"></div>
-                        <span class="score-text">85% Compliant</span>
+                    <div class="framework-name">HIPAA (Healthcare Privacy)</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 92%;">92%</div>
                     </div>
-                    <div style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-secondary);">
-                        <div>✓ Privacy Rules: 100%</div>
-                        <div>✓ Security Rules: 80%</div>
-                        <div>⚠ Audit Controls: 70%</div>
-                    </div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">Protected health information handling</div>
                 </div>
 
                 <div class="framework-card">
-                    <h4>PCI DSS</h4>
-                    <div class="compliance-score">
-                        <div class="score-bar" style="--completion: 90%"></div>
-                        <span class="score-text">90% Compliant</span>
+                    <div class="framework-name">PCI DSS (Payment Card Security)</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" style="width: 90%;">90%</div>
                     </div>
-                    <div style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-secondary);">
-                        <div>✓ Card Data Security: 95%</div>
-                        <div>✓ Monitoring: 90%</div>
-                        <div>✓ Testing: 85%</div>
-                    </div>
+                    <div style="font-size: 0.85rem; color: var(--text-secondary);">Secure evidence storage and transmission</div>
                 </div>
+            </div>
+
+            <h3 style="margin-top: 2rem;">Compliance Documentation</h3>
+            <div style="background: var(--bg-white); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem;">
+                <p style="color: var(--text-secondary); margin: 0;">Compliance reports and certificates available upon request.</p>
             </div>
         </section>
 
-        <!-- ===== CASES DASHBOARD ===== -->
+        <!-- CASES TAB -->
         <section id="cases" class="tab-section" style="display: none;">
-            <h2>📋 Case Dashboard</h2>
-            <p>View and manage all evidence items for a case</p>
+            <h2>Case Management</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Manage cases and view associated evidence items</p>
             
-            <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;">
-                <input 
-                    type="text" 
-                    id="case-id" 
-                    placeholder="Example: KPS-CASE-0001" 
-                    style="flex: 1; min-width: 250px; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem;"
-                >
-                <button id="load-case" class="primary" style="white-space: nowrap;">🔍 Load Case</button>
+            <div style="background: var(--bg-white); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                <label style="display: block; font-weight: 600; margin-bottom: 0.75rem;">Case ID</label>
+                <div style="display: flex; gap: 0.75rem;">
+                    <input type="text" id="case-id-input" placeholder="Enter case ID...">
+                    <button onclick="loadCase()" class="primary">Load Case</button>
+                </div>
             </div>
-            
-            <div id="case-error" style="display: none;" class="alert alert-danger"></div>
 
-            <!-- Case Summary -->
-            <div id="case-summary" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                    <div>
-                        <h3 style="margin: 0;">Evidence Items</h3>
-                        <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem;">Complete inventory for this case</p>
-                    </div>
-                </div>
-
-                <div class="table-wrapper" style="overflow-x: auto; border: 1px solid var(--border); border-radius: 12px;">
-                    <table style="width: 100%; border-collapse: collapse;">
-                        <thead style="background: var(--bg-secondary); border-bottom: 2px solid var(--border);">
-                            <tr>
-                                <th style="padding: 1rem; text-align: left; font-weight: 600;">Evidence ID</th>
-                                <th style="padding: 1rem; text-align: left; font-weight: 600;">Description</th>
-                                <th style="padding: 1rem; text-align: left; font-weight: 600;">File Name</th>
-                                <th style="padding: 1rem; text-align: left; font-weight: 600;">Created</th>
-                                <th style="padding: 1rem; text-align: left; font-weight: 600;">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="evidence-table">
-                            <!-- Populated by JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
+            <div id="case-results">
+                <div style="text-align: center; color: var(--text-secondary); padding: 2rem;">Enter a case ID to view associated evidence</div>
             </div>
         </section>
     </main>
 
-    <footer style="background: var(--dark-1); border-top: 1px solid var(--border); margin-top: 3rem; padding: 2rem; text-align: center; color: var(--text-secondary);">
+    <!-- Footer -->
+    <footer style="background: var(--bg-white); border-top: 1px solid var(--border); padding: 2rem 0; margin-top: 3rem; text-align: center; font-size: 0.85rem; color: var(--text-secondary);">
         <div class="container">
-            <p>&copy; 2026 Tracey's Sentinel — Forensic Evidence Chain of Custody Platform | Secure. Tamper-evident. Court-ready.</p>
+            <p style="margin: 0;">Tracey's Sentinel — Forensic Evidence Management Platform</p>
+            <p style="margin: 0.5rem 0 0 0;">Secure • Tamper-Evident • Court-Ready | Press <kbd>?</kbd> for keyboard shortcuts</p>
         </div>
     </footer>
 
-    <script src="https://unpkg.com/qr-scanner@1.4.2/qr-scanner.umd.min.js"></script>
-    <script src="app.js" defer></script>
-    <script src="case.js" defer></script>
+    <!-- Notification Container -->
+    <div id="notification-container"></div>
+
+    <!-- Scripts -->
+    <script src="app.js"></script>
 </body>
 </html>

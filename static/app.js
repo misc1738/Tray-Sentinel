@@ -1,10 +1,15 @@
-/* Tracey's Sentinel UI — Full-Featured Console with Dashboards, Analytics, Search, Monitoring */
+/* Tracey's Sentinel UI — Advanced Multi-Dashboard Platform with Export, Themes, & Notifications */
 
 const API_BASE = ''; // same-origin
 
 let currentEvidenceId = null;
 let qrScanner = null;
 let analyticsData = null;
+let favorites = JSON.parse(localStorage.getItem('favorites')) || [];
+let userPreferences = JSON.parse(localStorage.getItem('userPreferences')) || { theme: 'dark', notifications: true };
+let notifications = [];
+let currentPage = { search: 1, cases: 1 };
+const ITEMS_PER_PAGE = 10;
 
 // ===== UTILITY FUNCTIONS =====
 async function fetchJSON(url, opts = {}) {
@@ -162,7 +167,7 @@ async function performSearch() {
     const filterRecent = document.getElementById('filter-recent').checked;
     
     if (!searchInput && !actionFilter && !filterVerified && !filterEndorsed && !filterRecent) {
-        document.getElementById('search-table-body').innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">Enter search criteria</td></tr>';
+        document.getElementById('search-table-body').innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-secondary);">Enter search criteria</td></tr>';
         return;
     }
 
@@ -176,32 +181,81 @@ async function performSearch() {
         const response = await fetch(`/evidence/search?${params}`);
         if (response.ok) {
             const results = await response.json();
+            analyticsData.lastSearchResults = results;
             renderSearchResults(results);
+            showNotification(`Found ${results.length} results ✓`, 'success');
         } else {
-            document.getElementById('search-table-body').innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--danger);">Search failed</td></tr>';
+            document.getElementById('search-table-body').innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--danger);">Search failed</td></tr>';
+            showNotification('Search failed', 'error');
         }
     } catch (e) {
         console.error('Search error:', e);
+        showNotification('Search error: ' + e.message, 'error');
     }
 }
 
 function renderSearchResults(results) {
     const tbody = document.getElementById('search-table-body');
     if (!results || results.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">No results found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-secondary);">No results found</td></tr>';
         return;
     }
 
-    tbody.innerHTML = results.map(result => `
+    currentPage.search = 1;
+    renderPaginatedResults(results, 'search');
+}
+
+function renderPaginatedResults(results, type) {
+    const tbody = document.getElementById(type === 'search' ? 'search-table-body' : 'evidence-table');
+    const page = currentPage[type] || 1;
+    const start = (page - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    const paged = results.slice(start, end);
+
+    tbody.innerHTML = paged.map(result => `
         <tr>
             <td><code>${result.evidence_id}</code></td>
             <td><code>${result.case_id}</code></td>
             <td>${result.description || 'N/A'}</td>
             <td><span class="status-badge ${result.integrity_verified ? 'verified' : 'pending'}">${result.integrity_verified ? '✓ Verified' : '⏳ Pending'}</span></td>
             <td>${new Date(result.created_at).toLocaleDateString()}</td>
+            <td>
+                <button onclick="toggleFavorite('${result.evidence_id}'); updateFavoriteButtons();" data-evidence-id="${result.evidence_id}" data-favorite-btn class="action-btn">☆ Add</button>
+            </td>
             <td><button onclick="loadEvidence('${result.evidence_id}'); switchTab('scanner');" class="action-btn">View</button></td>
         </tr>
     `).join('');
+
+    // Add pagination controls
+    const totalPages = Math.ceil(results.length / ITEMS_PER_PAGE);
+    if (totalPages > 1) {
+        const paginationDiv = document.getElementById(type + '-pagination') || createPaginationControls(type);
+        paginationDiv.innerHTML = `
+            <div style="text-align: center; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                <small style="color: var(--text-secondary);">Page ${page} of ${totalPages} (${results.length} results)</small>
+                <div style="margin-top: 0.5rem; display: flex; gap: 0.5rem; justify-content: center;">
+                    ${page > 1 ? `<button onclick="goToPage('${type}', ${page - 1});" class="ghost" style="padding: 0.5rem 1rem;">← Previous</button>` : ''}
+                    ${page < totalPages ? `<button onclick="goToPage('${type}', ${page + 1});" class="ghost" style="padding: 0.5rem 1rem;">Next →</button>` : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    updateFavoriteButtons();
+}
+
+function createPaginationControls(type) {
+    const div = document.createElement('div');
+    div.id = type + '-pagination';
+    const container = document.getElementById('search-results') || document.getElementById('case-summary');
+    if (container) container.appendChild(div);
+    return div;
+}
+
+function goToPage(type, page) {
+    currentPage[type] = page;
+    const results = type === 'search' ? analyticsData.lastSearchResults : analyticsData.lastCaseResults;
+    if (results) renderPaginatedResults(results, type);
 }
 
 // ===== SYSTEM HEALTH MONITOR =====
@@ -323,6 +377,193 @@ function stopScanner() {
     document.getElementById('stop-scan').disabled = true;
 }
 
+// ===== FILE UPLOAD =====
+let selectedFiles = [];
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+}
+
+function getFileIcon(fileName) {
+    const ext = fileName.toLowerCase().split('.').pop();
+    const iconMap = {
+        // Documents
+        'pdf': '📄', 'doc': '📝', 'docx': '📝', 'txt': '📋',
+        // Images
+        'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️', 'bmp': '🖼️', 'svg': '🖼️',
+        // Archives
+        'zip': '📦', 'rar': '📦', '7z': '📦', 'tar': '📦', 'gz': '📦',
+        // Video
+        'mp4': '🎥', 'avi': '🎥', 'mov': '🎥', 'mkv': '🎥', 'wmv': '🎥',
+        // Audio
+        'mp3': '🎵', 'wav': '🎵', 'flac': '🎵', 'm4a': '🎵', 'aac': '🎵',
+        // Code
+        'js': '⚙️', 'py': '⚙️', 'json': '⚙️', 'xml': '⚙️', 'html': '⚙️',
+        // Default
+        'other': '📎'
+    };
+    return iconMap[ext] || iconMap['other'];
+}
+
+function updateFilesList() {
+    const list = document.getElementById('upload-files-list');
+    const statsDiv = document.getElementById('upload-stats');
+    const uploadBtn = document.getElementById('upload-btn');
+    const clearBtn = document.getElementById('clear-uploads');
+    
+    if (selectedFiles.length === 0) {
+        list.innerHTML = '';
+        statsDiv.style.display = 'none';
+        uploadBtn.style.display = 'none';
+        clearBtn.style.display = 'none';
+        return;
+    }
+    
+    // Calculate statistics
+    let totalSize = 0;
+    let largestSize = 0;
+    selectedFiles.forEach(file => {
+        totalSize += file.size;
+        largestSize = Math.max(largestSize, file.size);
+    });
+    
+    // Update stats display
+    document.getElementById('stat-file-count').textContent = selectedFiles.length;
+    document.getElementById('stat-total-size').textContent = formatFileSize(totalSize);
+    document.getElementById('stat-largest').textContent = formatFileSize(largestSize);
+    statsDiv.style.display = 'grid';
+    
+    // Update file list
+    list.innerHTML = selectedFiles.map((file, idx) => `
+        <div class="upload-file-item">
+            <div class="upload-file-left">
+                <div class="upload-file-icon">${getFileIcon(file.name)}</div>
+                <div class="upload-file-info">
+                    <div class="upload-file-name">${file.name}</div>
+                    <div class="upload-file-size">${formatFileSize(file.size)}</div>
+                </div>
+            </div>
+            <div class="upload-file-actions">
+                <button class="upload-file-remove" onclick="removeFile(${idx})">Remove</button>
+            </div>
+        </div>
+    `).join('');
+    
+    // Show action buttons
+    uploadBtn.style.display = 'flex';
+    clearBtn.style.display = 'flex';
+}
+
+function removeFile(idx) {
+    selectedFiles.splice(idx, 1);
+    updateFilesList();
+    showNotification('File removed from upload', 'info');
+}
+
+function handleFileSelect(files) {
+    selectedFiles = Array.from(files);
+    updateFilesList();
+    
+    if (selectedFiles.length > 0) {
+        showNotification(`${selectedFiles.length} file(s) selected for upload`, 'success');
+    }
+}
+
+async function uploadFiles() {
+    if (selectedFiles.length === 0) {
+        showNotification('No files selected', 'warning');
+        return;
+    }
+
+    const caseId = document.getElementById('upload-case-id').value.trim();
+    const description = document.getElementById('upload-description').value.trim();
+
+    if (!caseId) {
+        showNotification('Case ID is required', 'danger');
+        return;
+    }
+
+    const progressDiv = document.getElementById('upload-progress');
+    const progressBar = document.getElementById('progress-bar');
+    const progressText = document.getElementById('progress-percentage');
+    progressDiv.style.display = 'block';
+    progressBar.style.width = '0%';
+    progressText.textContent = '0%';
+
+    try {
+        let completed = 0;
+        const total = selectedFiles.length;
+
+        for (const file of selectedFiles) {
+            try {
+                // Read file as base64
+                const fileContent = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = reject;
+                    reader.readAsArrayBuffer(file);
+                });
+
+                // Convert to base64 string
+                const uint8Array = new Uint8Array(fileContent);
+                const binaryString = String.fromCharCode.apply(null, uint8Array);
+                const base64String = btoa(binaryString);
+
+                // Send to backend
+                const response = await fetch('/evidence/intake', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Operator': 'upload-system'
+                    },
+                    body: JSON.stringify({
+                        case_id: caseId,
+                        description: description || file.name,
+                        file_name: file.name,
+                        file_bytes_b64: base64String,
+                        source_device: 'web-upload',
+                        acquisition_method: 'file_upload'
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    completed++;
+                    const percent = Math.round((completed / total) * 100);
+                    progressBar.style.width = percent + '%';
+                    progressText.textContent = percent + '%';
+                    
+                    showNotification(`✓ ${file.name} uploaded (ID: ${data.evidence_id.substring(0, 8)}...)`, 'success');
+                } else {
+                    const errorText = await response.text();
+                    showNotification(`✗ Failed to upload ${file.name}: ${response.statusText}`, 'danger');
+                }
+            } catch (e) {
+                showNotification(`✗ Error uploading ${file.name}: ${e.message}`, 'danger');
+            }
+        }
+
+        if (completed === total) {
+            showNotification('All files uploaded successfully!', 'success');
+            selectedFiles = [];
+            updateFilesList();
+            document.getElementById('upload-case-id').value = '';
+            document.getElementById('upload-description').value = '';
+        }
+
+        setTimeout(() => {
+            progressDiv.style.display = 'none';
+        }, 2000);
+    } catch (e) {
+        showNotification('Upload error: ' + e.message, 'danger');
+        progressDiv.style.display = 'none';
+    }
+}
+
 // ===== EVENT LISTENERS =====
 document.querySelectorAll('.nav-tab').forEach(btn => {
     btn.addEventListener('click', (e) => switchTab(e.target.dataset.tab));
@@ -330,6 +571,42 @@ document.querySelectorAll('.nav-tab').forEach(btn => {
 
 document.getElementById('start-scan').addEventListener('click', startScanner);
 document.getElementById('stop-scan').addEventListener('click', stopScanner);
+
+// File Upload Event Listeners
+const uploadZone = document.getElementById('upload-zone');
+const fileInput = document.getElementById('file-input');
+const browseBtn = document.getElementById('browse-files');
+const uploadBtn = document.getElementById('upload-btn');
+const clearBtn = document.getElementById('clear-uploads');
+
+browseBtn.addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', (e) => {
+    handleFileSelect(e.target.files);
+});
+
+uploadZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadZone.classList.add('dragover');
+});
+
+uploadZone.addEventListener('dragleave', () => {
+    uploadZone.classList.remove('dragover');
+});
+
+uploadZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadZone.classList.remove('dragover');
+    handleFileSelect(e.dataTransfer.files);
+});
+
+uploadBtn.addEventListener('click', uploadFiles);
+clearBtn.addEventListener('click', () => {
+    selectedFiles = [];
+    updateFilesList();
+    fileInput.value = '';
+    showNotification('Files cleared', 'info');
+});
 
 document.getElementById('verify-integrity').addEventListener('click', async () => {
     if (!currentEvidenceId) return;
@@ -379,8 +656,335 @@ document.getElementById('back-scan').addEventListener('click', () => switchTab('
 document.getElementById('search-btn').addEventListener('click', performSearch);
 document.getElementById('search-input').addEventListener('keypress', (e) => e.key === 'Enter' && performSearch());
 
+// Case ID input - add listener
+const caseIdInput = document.getElementById('case-id-input');
+if (caseIdInput) {
+    caseIdInput.addEventListener('keypress', (e) => e.key === 'Enter' && loadCase());
+}
+
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
     loadHomeDashboard();
+    applyTheme();
+    setupKeyboardShortcuts();
+    loadFavorites();
     setInterval(loadRecentActivity, 5000); // Refresh every 5s
 });
+
+// ===== THEME MANAGEMENT =====
+function applyTheme() {
+    const theme = userPreferences.theme || 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+    const btn = document.getElementById('theme-toggle');
+    if (btn) btn.textContent = theme === 'dark' ? '☀️ Light' : '🌙 Dark';
+}
+
+function toggleTheme() {
+    userPreferences.theme = userPreferences.theme === 'dark' ? 'light' : 'dark';
+    localStorage.setItem('userPreferences', JSON.stringify(userPreferences));
+    applyTheme();
+    showNotification('Theme changed to ' + userPreferences.theme.toUpperCase(), 'info');
+}
+
+// ===== NOTIFICATIONS =====
+function showNotification(message, type = 'info') {
+    const container = document.getElementById('notification-container') || createNotificationContainer();
+    const id = Date.now();
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <span>${message}</span>
+        <button onclick="this.parentElement.remove()" style="background: none; border: none; color: inherit; cursor: pointer; margin-left: 1rem;">✕</button>
+    `;
+    container.appendChild(notification);
+    
+    setTimeout(() => notification.remove(), 5000);
+}
+
+function createNotificationContainer() {
+    const container = document.createElement('div');
+    container.id = 'notification-container';
+    container.style.cssText = 'position: fixed; top: 80px; right: 1rem; z-index: 1000; max-width: 400px;';
+    document.body.appendChild(container);
+    return container;
+}
+
+// ===== KEYBOARD SHORTCUTS =====
+function setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey || e.metaKey) {
+            if (e.key === 's') { e.preventDefault(); switchTab('search'); }
+            if (e.key === 'a') { e.preventDefault(); switchTab('analytics'); }
+            if (e.key === 'h') { e.preventDefault(); switchTab('home'); }
+            if (e.key === 'e') { e.preventDefault(); switchTab('scanner'); }
+        }
+        if (e.key === 'Escape') { closeAllModals(); }
+        if (e.key === '?') { showKeyboardHelp(); }
+    });
+}
+
+function showKeyboardHelp() {
+    alert(`⌨️ Keyboard Shortcuts:
+    
+Ctrl/Cmd + S  →  Search
+Ctrl/Cmd + A  →  Analytics
+Ctrl/Cmd + H  →  Home
+Ctrl/Cmd + E  →  Scanner
+ESC           →  Close modals
+?             →  This help
+
+Pro Tip: Use search filters for powerful queries!`);
+}
+
+function closeAllModals() {
+    document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
+}
+
+// ===== FAVORITES SYSTEM =====
+function toggleFavorite(evidenceId) {
+    if (favorites.includes(evidenceId)) {
+        favorites = favorites.filter(id => id !== evidenceId);
+        showNotification('Removed from favorites ✕', 'info');
+    } else {
+        favorites.push(evidenceId);
+        showNotification('Added to favorites ★', 'success');
+    }
+    localStorage.setItem('favorites', JSON.stringify(favorites));
+    updateFavoriteButtons();
+}
+
+function updateFavoriteButtons() {
+    document.querySelectorAll('[data-favorite-btn]').forEach(btn => {
+        const id = btn.dataset.evidenceId;
+        if (favorites.includes(id)) {
+            btn.textContent = '★ Favorite';
+            btn.style.color = '#f59e0b';
+        } else {
+            btn.textContent = '☆ Add to Favorites';
+            btn.style.color = 'inherit';
+        }
+    });
+}
+
+function loadFavorites() {
+    const container = document.getElementById('favorites-list');
+    if (!container) return;
+    
+    if (favorites.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 2rem;">No favorites yet. ★ Add evidence to your favorites!</div>';
+        return;
+    }
+    
+    container.innerHTML = favorites.map(id => `
+        <div class="favorite-chip">
+            <code>${id}</code>
+            <button onclick="toggleFavorite('${id}'); loadFavorites();" style="background: none; border: none; cursor: pointer; color: #f59e0b;">✕</button>
+        </div>
+    `).join('');
+}
+
+// ===== EXPORT FUNCTIONALITY =====
+function exportAsJSON() {
+    const data = {
+        timestamp: new Date().toISOString(),
+        theme: userPreferences.theme,
+        favorites: favorites,
+        analytics: analyticsData,
+        exportedBy: 'Tracey\'s Sentinel v3.0'
+    };
+    downloadFile(JSON.stringify(data, null, 2), `sentinel-export-${new Date().getTime()}.json`, 'application/json');
+    showNotification('Data exported as JSON ✓', 'success');
+}
+
+function exportAsCSV() {
+    // Export favorites and analytics
+    let csv = 'Field,Value\n';
+    csv += `Export Date,"${new Date().toISOString()}"\n`;
+    csv += `Theme,"${userPreferences.theme}"\n`;
+    csv += `Favorites Count,${favorites.length}\n`;
+    csv += `Total Evidence,${analyticsData?.total_evidence || 0}\n`;
+    csv += `Active Cases,${analyticsData?.active_cases || 0}\n`;
+    csv += `Verified Rate,${analyticsData?.verified_percentage || 0}%\n`;
+    
+    if (analyticsData?.action_breakdown) {
+        csv += '\nAction Type,Count\n';
+        Object.entries(analyticsData.action_breakdown).forEach(([type, count]) => {
+            csv += `${type},${count}\n`;
+        });
+    }
+    
+    downloadFile(csv, `sentinel-export-${new Date().getTime()}.csv`, 'text/csv');
+    showNotification('Data exported as CSV ✓', 'success');
+}
+
+function downloadFile(content, filename, type) {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function printDashboard() {
+    const printContent = document.querySelector('.tab-section:not([style*="display: none"])');
+    if (!printContent) {
+        showNotification('No dashboard to print', 'warning');
+        return;
+    }
+    
+    const printWindow = window.open('', '', 'height=600,width=800');
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Tracey's Sentinel - Dashboard Print</title>
+            <style>
+                body { font-family: Arial, sans-serif; margin: 2rem; color: #333; }
+                h1, h2 { color: #00d9ff; }
+                .stat-card { border: 1px solid #ccc; padding: 1rem; margin: 0.5rem 0; }
+                table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+                th, td { border: 1px solid #ddd; padding: 0.5rem; text-align: left; }
+                th { background: #f0f0f0; }
+                code { background: #f5f5f5; padding: 0.25rem 0.5rem; border-radius: 3px; }
+            </style>
+        </head>
+        <body>
+            <h1>Tracey's Sentinel Dashboard</h1>
+            <p>Printed: ${new Date().toLocaleString()}</p>
+            ${printContent.innerHTML}
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+    setTimeout(() => printWindow.print(), 250);
+    showNotification('Print dialog opened ✓', 'info');
+}
+
+// ===== USER PREFERENCES =====
+function openPreferences() {
+    const modal = document.getElementById('preferences-modal') || createPreferencesModal();
+    modal.style.display = 'block';
+}
+
+function createPreferencesModal() {
+    const modal = document.createElement('div');
+    modal.id = 'preferences-modal';
+    modal.className = 'modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <span class="close" onclick="document.getElementById('preferences-modal').style.display='none';">&times;</span>
+            <h2>⚙️ User Preferences</h2>
+            
+            <div style="margin: 1.5rem 0;">
+                <h3>Display</h3>
+                <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; margin: 0.5rem 0;">
+                    <input type="checkbox" id="pref-notifications" ${userPreferences.notifications ? 'checked' : ''} 
+                           onchange="userPreferences.notifications = this.checked; savePreferences();">
+                    Enable Notifications
+                </label>
+            </div>
+            
+            <div style="margin: 1.5rem 0;">
+                <h3>Account</h3>
+                <button onclick="clearAllData();" style="background: #ef4444; margin-top: 0.5rem;">Clear All Data</button>
+                <button onclick="exportAsJSON();" style="background: #06b6d4; margin-top: 0.5rem;">Export as JSON</button>
+                <button onclick="exportAsCSV();" style="background: #06b6d4; margin-top: 0.5rem;">Export as CSV</button>
+            </div>
+            
+            <div style="margin-top: 2rem; text-align: right;">
+                <button onclick="document.getElementById('preferences-modal').style.display='none';" class="ghost">Close</button>
+            </div>
+        </div>
+    `;
+    
+    modal.style.cssText = `display: none; position: fixed; z-index: 999; left: 0; top: 0; width: 100%; height: 100%; 
+                           background-color: rgba(0,0,0,0.5);`;
+    document.body.appendChild(modal);
+    return modal;
+}
+
+function savePreferences() {
+    localStorage.setItem('userPreferences', JSON.stringify(userPreferences));
+    showNotification('Preferences saved ✓', 'success');
+}
+
+function clearAllData() {
+    if (confirm('⚠️ Clear all data? This includes favorites, preferences, and cache. THIS CANNOT BE UNDONE.')) {
+        localStorage.clear();
+        favorites = [];
+        userPreferences = { theme: 'dark', notifications: true };
+        applyTheme();
+        showNotification('All data cleared', 'warning');
+        location.reload();
+    }
+}
+
+// ===== CASE MANAGEMENT =====
+async function loadCase() {
+    const caseIdInput = document.getElementById('case-id-input');
+    const caseId = caseIdInput.value.trim();
+    
+    if (!caseId) {
+        showNotification('Please enter a case ID', 'warning');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/case/${caseId}`);
+        if (!response.ok) {
+            showNotification('Case not found', 'error');
+            document.getElementById('case-results').innerHTML = `
+                <div style="background: var(--bg-white); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; text-align: center; color: var(--danger);">
+                    Case ID "${caseId}" not found in the system.
+                </div>
+            `;
+            return;
+        }
+
+        const caseData = await response.json();
+        analyticsData.lastCaseResults = caseData.evidence || [];
+        
+        const html = `
+            <div style="background: var(--bg-white); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem;">
+                <h3>${caseData.case_id}</h3>
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; font-size: 0.9rem;">
+                    <div><strong>Status:</strong> ${caseData.status || 'Active'}</div>
+                    <div><strong>Opened:</strong> ${new Date(caseData.created_at).toLocaleDateString()}</div>
+                    <div><strong>Lead Investigator:</strong> ${caseData.lead_investigator || 'N/A'}</div>
+                    <div><strong>Total Evidence Items:</strong> ${(caseData.evidence || []).length}</div>
+                </div>
+            </div>
+
+            <h3>Evidence Items</h3>
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>Evidence ID</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="evidence-table">
+                    ${(caseData.evidence || []).length === 0 ? '<tr><td colspan="5" style="text-align: center; color: var(--text-secondary);">No evidence items for this case</td></tr>' : ''}
+                </tbody>
+            </table>
+            <div id="case-pagination"></div>
+        `;
+        
+        document.getElementById('case-results').innerHTML = html;
+        
+        if (caseData.evidence && caseData.evidence.length > 0) {
+            currentPage.cases = 1;
+            renderPaginatedResults(caseData.evidence, 'cases');
+        }
+        
+        showNotification(`Loaded case ${caseId} with ${(caseData.evidence || []).length} evidence items ✓`, 'success');
+    } catch (e) {
+        console.error('Case load error:', e);
+        showNotification('Error loading case: ' + e.message, 'error');
+    }
+}

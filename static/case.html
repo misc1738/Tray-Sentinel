@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Case Dashboard for Tracey's Sentinel Forensic Evidence Platform">
-    <meta name="theme-color" content="#1e40af">
+    <meta name="theme-color" content="#6366f1">
     <title>Case Dashboard — Tracey's Sentinel</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -22,14 +22,14 @@
             <h2>Search for Case</h2>
             <p>Enter a case identifier to view all associated evidence items and their custody history.</p>
             
-            <div style="display: flex; gap: 1rem; margin: 1.5rem 0; flex-wrap: wrap;">
+            <div style="display: flex; gap: 1.5rem; margin: 2rem 0; flex-wrap: wrap;">
                 <input 
                     type="text" 
                     id="case-id" 
                     placeholder="Example: KPS-CASE-0001" 
-                    style="flex: 1; min-width: 250px; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem;"
+                    style="flex: 1; min-width: 250px; padding: 0.875rem 1rem; border: 2px solid var(--border); border-radius: 8px; font-size: 1rem; transition: var(--transition);"
                 >
-                <button id="load-case" class="primary" style="white-space: nowrap;">🔍 Load Case</button>
+                <button id="load-case" class="primary" style="white-space: nowrap; font-weight: 700; padding: 0.875rem 2rem;">🔍 Load Case</button>
             </div>
             
             <div id="case-error" style="display: none;" class="alert alert-danger"></div>
@@ -37,23 +37,23 @@
 
         <!-- Case Summary -->
         <section id="case-summary" style="display: none;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
                 <div>
                     <h2 style="margin: 0;">Evidence Items</h2>
-                    <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem;">Complete inventory for this case</p>
+                    <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; color: var(--text-secondary);">Complete inventory for this case</p>
                 </div>
-                <button id="back-case" class="ghost" style="padding: 0.625rem 1.25rem;">← Back</button>
+                <button id="back-case" class="ghost" style="padding: 0.75rem 1.5rem; font-weight: 600;">← Back to Search</button>
             </div>
 
-            <div class="table-wrapper" style="overflow-x: auto; border: 1px solid var(--border); border-radius: 12px;">
-                <table style="width: 100%; border-collapse: collapse;">
-                    <thead style="background: var(--bg-secondary); border-bottom: 2px solid var(--border);">
+            <div class="table-wrapper" style="overflow-x: auto; border: 2px solid var(--border); border-radius: var(--border-radius); box-shadow: var(--shadow-sm);">
+                <table class="results-table" style="border: none; border-radius: 0; margin: 0; box-shadow: none;">
+                    <thead>
                         <tr>
-                            <th style="padding: 1rem; text-align: left; font-weight: 600;">Evidence ID</th>
-                            <th style="padding: 1rem; text-align: left; font-weight: 600;">Description</th>
-                            <th style="padding: 1rem; text-align: left; font-weight: 600;">File Name</th>
-                            <th style="padding: 1rem; text-align: left; font-weight: 600;">Created</th>
-                            <th style="padding: 1rem; text-align: left; font-weight: 600;">Actions</th>
+                            <th style="padding: 1.25rem;">Evidence ID</th>
+                            <th style="padding: 1.25rem;">Description</th>
+                            <th style="padding: 1.25rem;">File Name</th>
+                            <th style="padding: 1.25rem;">Created</th>
+                            <th style="padding: 1.25rem; text-align: center;">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="evidence-table">
@@ -72,14 +72,15 @@
 
     <style>
         .alert {
-            padding: 1rem;
-            border-radius: 8px;
+            padding: 1.25rem 1.5rem;
+            border-radius: var(--border-radius);
             border-left: 4px solid;
-            margin: 1rem 0;
+            margin: 1.5rem 0;
+            font-weight: 500;
         }
 
         .alert-danger {
-            background: rgba(220, 38, 38, 0.1);
+            background: linear-gradient(135deg, rgba(239, 68, 68, 0.05) 0%, transparent 100%);
             border-left-color: var(--danger);
             color: var(--danger);
         }
@@ -90,31 +91,110 @@
         }
 
         tbody tr:hover {
-            background: var(--bg-secondary);
+            background: linear-gradient(90deg, var(--primary-light) 0%, transparent 100%);
         }
 
         tbody td {
-            padding: 1rem;
+            padding: 1rem 1.25rem;
             color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        tbody td:first-child {
+            font-weight: 600;
+            color: var(--text);
+            font-family: 'Segoe UI Mono', monospace;
         }
 
         code {
-            font-family: 'Courier New', monospace;
-            background: var(--bg-secondary);
+            font-family: 'Segoe UI Mono', monospace;
+            background: var(--bg-subtle);
             padding: 0.25rem 0.5rem;
             border-radius: 4px;
             font-size: 0.85em;
+            color: var(--primary);
+            font-weight: 500;
         }
 
         .ghost {
             background: transparent;
-            border: 1px solid var(--border);
+            border: 2px solid var(--border);
             color: var(--text);
         }
 
         .ghost:hover {
-            background: var(--bg-secondary);
+            background: linear-gradient(135deg, var(--bg-white) 0%, var(--primary-light) 100%);
             border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        #notification-container {
+            position: fixed;
+            top: 100px;
+            right: 1.5rem;
+            z-index: 1000;
+            max-width: 420px;
+        }
+
+        .notification {
+            background: var(--bg-white);
+            border: 2px solid var(--border);
+            border-left: 5px solid var(--info);
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            box-shadow: var(--shadow-lg);
+            animation: slideInRight 0.3s ease-in-out;
+        }
+
+        .notification-success {
+            border-left-color: var(--success);
+            background: linear-gradient(135deg, var(--bg-white) 0%, rgba(16, 185, 129, 0.05) 100%);
+        }
+
+        .notification-error,
+        .notification-danger {
+            border-left-color: var(--danger);
+            background: linear-gradient(135deg, var(--bg-white) 0%, rgba(239, 68, 68, 0.05) 100%);
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .table-wrapper {
+                border-radius: 0 !important;
+                margin: -1.5rem -1rem 0 -1rem;
+            }
+
+            table {
+                font-size: 0.8rem !important;
+            }
+
+            td, th {
+                padding: 0.75rem 0.5rem !important;
+            }
+
+            #notification-container {
+                width: 90%;
+                right: 5%;
+                left: 5%;
+                max-width: 100%;
+            }
         }
     </style>
 
