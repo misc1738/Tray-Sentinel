@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracey's Sentinel — Authentication</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            margin: 0;
+        }
+
+        .auth-container {
+            width: 100%;
+            max-width: 420px;
+            padding: 2rem;
+        }
+
+        .auth-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2.5rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            animation: slideUp 0.5s ease-out;
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .auth-header h1 {
+            color: var(--accent);
+            margin: 0 0 0.5rem 0;
+            font-size: 1.8rem;
+            font-weight: 700;
+        }
+
+        .auth-header p {
+            color: var(--text-secondary);
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .form-select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .form-error {
+            color: #ef4444;
+            font-size: 0.85rem;
+            margin-top: 0.3rem;
+            display: none;
+        }
+
+        .form-error.show {
+            display: block;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 0.8rem;
+            background: linear-gradient(135deg, var(--accent), #4f46e5);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 0.5rem;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .form-toggle {
+            text-align: center;
+            margin-top: 1.5rem;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        .form-toggle button {
+            background: none;
+            border: none;
+            color: var(--accent);
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: underline;
+            padding: 0;
+            font-size: 0.95rem;
+        }
+
+        .form-toggle button:hover {
+            color: #4f46e5;
+        }
+
+        .demo-users {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid var(--accent);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .demo-users h4 {
+            margin: 0 0 0.5rem 0;
+            color: var(--accent);
+            font-size: 0.9rem;
+        }
+
+        .demo-user {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            padding: 0.3rem 0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .demo-user:hover {
+            color: var(--accent);
+            padding-left: 0.3rem;
+        }
+
+        .demo-user code {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-size: 0.8rem;
+        }
+
+        .alert {
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            display: none;
+        }
+
+        .alert.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .alert-success {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid #22c55e;
+            color: #86efac;
+        }
+
+        .alert-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid #ef4444;
+            color: #fca5a5;
+        }
+
+        .alert-info {
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid var(--accent);
+            color: #a5b4fc;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-10px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <!-- Alert Messages -->
+            <div id="alert" class="alert"></div>
+
+            <!-- Login Form -->
+            <div id="login-form">
+                <div class="auth-header">
+                    <h1>🔐 Login</h1>
+                    <p>Tracey's Sentinel — Chain of Custody Platform</p>
+                </div>
+
+                <form onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="login-user">User ID</label>
+                        <input 
+                            type="text" 
+                            id="login-user" 
+                            class="form-input" 
+                            placeholder="e.g., officer1" 
+                            required
+                            autocomplete="username"
+                        >
+                        <div class="form-error" id="login-user-error"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="login-password">Password</label>
+                        <input 
+                            type="password" 
+                            id="login-password" 
+                            class="form-input" 
+                            placeholder="Enter your password" 
+                            required
+                            autocomplete="current-password"
+                        >
+                        <div class="form-error" id="login-password-error"></div>
+                    </div>
+
+                    <button type="submit" class="btn-primary" id="login-btn">
+                        <span id="login-btn-text">Login</span>
+                    </button>
+                </form>
+
+                <div class="form-toggle">
+                    Don't have an account? <button onclick="switchAuthMode('signup')">Sign Up</button>
+                </div>
+
+                <div class="demo-users">
+                    <h4>📋 Demo Users (Local Testing)</h4>
+                    <div class="demo-user" onclick="setDemoUser('officer1')"><code>officer1</code> - Field Officer (KPS)</div>
+                    <div class="demo-user" onclick="setDemoUser('analyst1')"><code>analyst1</code> - Forensic Analyst (LAB)</div>
+                    <div class="demo-user" onclick="setDemoUser('supervisor1')"><code>supervisor1</code> - Supervisor (KPS)</div>
+                    <div class="demo-user" onclick="setDemoUser('prosecutor1')"><code>prosecutor1</code> - Prosecutor (ODPP)</div>
+                    <div class="demo-user" onclick="setDemoUser('judge1')"><code>judge1</code> - Judge (JUDICIARY)</div>
+                </div>
+            </div>
+
+            <!-- Signup Form -->
+            <div id="signup-form" style="display: none;">
+                <div class="auth-header">
+                    <h1>📝 Sign Up</h1>
+                    <p>Create your Sentinel account</p>
+                </div>
+
+                <form onsubmit="handleSignup(event)">
+                    <div class="form-group">
+                        <label class="form-label" for="signup-user">User ID</label>
+                        <input 
+                            type="text" 
+                            id="signup-user" 
+                            class="form-input" 
+                            placeholder="Choose a username" 
+                            required
+                            minlength="3"
+                        >
+                        <div class="form-error" id="signup-user-error"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="signup-email">Email</label>
+                        <input 
+                            type="email" 
+                            id="signup-email" 
+                            class="form-input" 
+                            placeholder="your@email.com" 
+                            required
+                        >
+                        <div class="form-error" id="signup-email-error"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="signup-role">Role</label>
+                        <select id="signup-role" class="form-select" required>
+                            <option value="">-- Select a role --</option>
+                            <option value="FIELD_OFFICER">Field Officer</option>
+                            <option value="FORENSIC_ANALYST">Forensic Analyst</option>
+                            <option value="SUPERVISOR">Supervisor</option>
+                            <option value="PROSECUTOR">Prosecutor</option>
+                            <option value="JUDGE">Judge</option>
+                            <option value="SYSTEM_AUDITOR">System Auditor</option>
+                        </select>
+                        <div class="form-error" id="signup-role-error"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="signup-org">Organization ID</label>
+                        <input 
+                            type="text" 
+                            id="signup-org" 
+                            class="form-input" 
+                            placeholder="e.g., KPS, FORENSIC_LAB" 
+                            required
+                        >
+                        <div class="form-error" id="signup-org-error"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="signup-password">Password</label>
+                        <input 
+                            type="password" 
+                            id="signup-password" 
+                            class="form-input" 
+                            placeholder="Minimum 8 characters" 
+                            required
+                            minlength="8"
+                        >
+                        <div class="form-error" id="signup-password-error"></div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="signup-confirm">Confirm Password</label>
+                        <input 
+                            type="password" 
+                            id="signup-confirm" 
+                            class="form-input" 
+                            placeholder="Re-enter your password" 
+                            required
+                        >
+                        <div class="form-error" id="signup-confirm-error"></div>
+                    </div>
+
+                    <button type="submit" class="btn-primary" id="signup-btn">
+                        <span id="signup-btn-text">Create Account</span>
+                    </button>
+                </form>
+
+                <div class="form-toggle">
+                    Already have an account? <button onclick="switchAuthMode('login')">Login</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="auth.js"></script>
+</body>
+</html>

@@ -2,6 +2,53 @@
 
 const API_BASE = ''; // same-origin
 
+// ===== AUTHENTICATION CHECK =====
+function checkAuthAndRedirect() {
+    const token = localStorage.getItem('auth_token');
+    const userId = localStorage.getItem('user_id');
+    
+    if (!token || !userId) {
+        window.location.href = '/auth.html';
+        return false;
+    }
+    return true;
+}
+
+// Redirect if not authenticated
+if (!checkAuthAndRedirect()) {
+    throw new Error('Not authenticated');
+}
+
+// ===== LOGOUT FUNCTION =====
+function logout() {
+    if (confirm('Are you sure you want to logout?')) {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_id');
+        localStorage.removeItem('user_role');
+        localStorage.removeItem('org_id');
+        window.location.href = '/auth.html';
+    }
+}
+
+// ===== UPDATE USER INFO IN HEADER =====
+function updateUserInfo() {
+    const userId = localStorage.getItem('user_id');
+    const userRole = localStorage.getItem('user_role');
+    const orgId = localStorage.getItem('org_id');
+    
+    const userInfoEl = document.getElementById('user-info');
+    if (userInfoEl && userId) {
+        userInfoEl.innerHTML = `
+            <span>👤 ${userId}</span>
+            <span style="margin: 0 0.5rem; color: var(--text-secondary);">•</span>
+            <span>${userRole || 'User'}</span>
+            <span style="margin: 0 0.5rem; color: var(--text-secondary);">•</span>
+            <span>${orgId || 'N/A'}</span>
+            <button onclick="logout()" class="ghost" style="margin-left: 1rem;">Logout</button>
+        `;
+    }
+}
+
 let currentEvidenceId = null;
 let qrScanner = null;
 let analyticsData = null;
@@ -13,10 +60,25 @@ const ITEMS_PER_PAGE = 10;
 
 // ===== UTILITY FUNCTIONS =====
 async function fetchJSON(url, opts = {}) {
+    const token = localStorage.getItem('auth_token');
+    const headers = {
+        'Content-Type': 'application/json',
+        'X-User-Id': localStorage.getItem('user_id') || 'unknown',
+        ...opts.headers
+    };
+    
     const r = await fetch(url, {
-        headers: { 'Content-Type': 'application/json', ...opts.headers },
+        headers,
         ...opts,
     });
+    
+    if (r.status === 401) {
+        localStorage.removeItem('auth_token');
+        localStorage.removeItem('user_id');
+        window.location.href = '/auth.html';
+        throw new Error('Session expired');
+    }
+    
     if (!r.ok) throw new Error(`HTTP ${r.status}: ${await r.text()}`);
     return r.json();
 }
@@ -664,6 +726,7 @@ if (caseIdInput) {
 
 // ===== INITIALIZATION =====
 document.addEventListener('DOMContentLoaded', () => {
+    updateUserInfo();
     loadHomeDashboard();
     applyTheme();
     setupKeyboardShortcuts();
@@ -712,28 +775,30 @@ function createNotificationContainer() {
 // ===== KEYBOARD SHORTCUTS =====
 function setupKeyboardShortcuts() {
     document.addEventListener('keydown', (e) => {
+        // Ctrl/Cmd shortcuts
         if (e.ctrlKey || e.metaKey) {
             if (e.key === 's') { e.preventDefault(); switchTab('search'); }
             if (e.key === 'a') { e.preventDefault(); switchTab('analytics'); }
             if (e.key === 'h') { e.preventDefault(); switchTab('home'); }
             if (e.key === 'e') { e.preventDefault(); switchTab('scanner'); }
+            if (e.key === 'k') { e.preventDefault(); switchTab('cases'); }
+            if (e.key === '/') { e.preventDefault(); showKeyboardHelp(); }
         }
+        
+        // Single key shortcuts
         if (e.key === 'Escape') { closeAllModals(); }
-        if (e.key === '?') { showKeyboardHelp(); }
+        if (e.key === '?') { e.preventDefault(); showKeyboardHelp(); }
+        if (e.key === 'g' && !e.ctrlKey && !e.metaKey) { switchTab('home'); }
+        if (e.key === 'G' && !e.ctrlKey && !e.metaKey) { switchTab('home'); }
+        if (e.key === 'l' && !e.ctrlKey && !e.metaKey) { logout(); }
+        if (e.key === 'L' && !e.ctrlKey && !e.metaKey) { logout(); }
+        if (e.key === 't' && !e.ctrlKey && !e.metaKey) { toggleTheme(); }
+        if (e.key === 'T' && !e.ctrlKey && !e.metaKey) { toggleTheme(); }
     });
 }
 
 function showKeyboardHelp() {
-    alert(`⌨️ Keyboard Shortcuts:
-    
-Ctrl/Cmd + S  →  Search
-Ctrl/Cmd + A  →  Analytics
-Ctrl/Cmd + H  →  Home
-Ctrl/Cmd + E  →  Scanner
-ESC           →  Close modals
-?             →  This help
-
-Pro Tip: Use search filters for powerful queries!`);
+    window.location.href = '/help.html';
 }
 
 function closeAllModals() {

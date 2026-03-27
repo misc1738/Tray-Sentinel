@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracey's Sentinel — Help & Documentation</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .help-container {
+            max-width: 1000px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        .help-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .help-section h2 {
+            color: var(--accent);
+            margin-top: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .help-section h3 {
+            color: var(--text-primary);
+            margin-top: 1rem;
+        }
+
+        .keyboard-shortcuts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .shortcut-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            background: rgba(99, 102, 241, 0.05);
+            border-radius: 4px;
+        }
+
+        .shortcut-key {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            padding: 0.2rem 0.5rem;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            min-width: 80px;
+        }
+
+        .shortcut-desc {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            flex: 1;
+        }
+
+        .api-endpoint {
+            background: var(--bg-primary);
+            border-left: 3px solid var(--accent);
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+        }
+
+        .method-badge {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 3px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+
+        .method-get { background: rgba(34, 197, 94, 0.2); color: #86efac; }
+        .method-post { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+        .method-put { background: rgba(251, 146, 60, 0.2); color: #fed7aa; }
+        .method-delete { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .feature-card {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            border-color: var(--accent);
+            background: var(--bg-secondary);
+        }
+
+        .feature-card h4 {
+            color: var(--accent);
+            margin: 0 0 0.5rem 0;
+        }
+
+        .feature-card p {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .toc {
+            background: rgba(99, 102, 241, 0.05);
+            border: 1px solid var(--accent);
+            border-radius: 6px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .toc h3 {
+            margin-top: 0;
+            color: var(--accent);
+        }
+
+        .toc ul {
+            margin: 0;
+            padding-left: 1.5rem;
+        }
+
+        .toc li {
+            margin: 0.3rem 0;
+            color: var(--text-secondary);
+        }
+
+        .toc a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        .code-block {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 1rem;
+            overflow-x: auto;
+            font-family: monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            margin: 0.5rem 0;
+        }
+
+        .back-button {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            background: var(--accent);
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+        }
+
+        @media (max-width: 768px) {
+            .help-container {
+                padding: 0.5rem;
+            }
+
+            .keyboard-shortcuts {
+                grid-template-columns: 1fr;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container" style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1>Tracey's Sentinel — Help & Documentation</h1>
+                <p>Complete guide to using the forensic evidence management system</p>
+            </div>
+            <button class="back-button" onclick="window.location.href='/'">← Back to Dashboard</button>
+        </div>
+    </header>
+
+    <main class="help-container">
+        <!-- Table of Contents -->
+        <div class="toc">
+            <h3>📑 Quick Navigation</h3>
+            <ul>
+                <li><a href="#getting-started">Getting Started</a></li>
+                <li><a href="#keyboard-shortcuts">Keyboard Shortcuts</a></li>
+                <li><a href="#features">Feature Overview</a></li>
+                <li><a href="#api-reference">API Reference</a></li>
+                <li><a href="#troubleshooting">Troubleshooting</a></li>
+                <li><a href="#glossary">Glossary</a></li>
+            </ul>
+        </div>
+
+        <!-- Getting Started -->
+        <div class="help-section" id="getting-started">
+            <h2>🚀 Getting Started</h2>
+            
+            <h3>First Time Setup</h3>
+            <p>When you first access Tracey's Sentinel, you'll need to authenticate:</p>
+            <ol>
+                <li><strong>Create Account</strong> — Click "Sign Up" to register as a new user</li>
+                <li><strong>Provide Details</strong> — Enter your user ID, email, role, and organization</li>
+                <li><strong>Set Password</strong> — Choose a secure password (minimum 8 characters)</li>
+                <li><strong>Login</strong> — Return to login and enter your credentials</li>
+            </ol>
+
+            <h3>Demo Access</h3>
+            <p>To quickly test the system, use one of the demo accounts:</p>
+            <div class="code-block">
+Username: officer1 | Password: demo123
+Username: analyst1 | Password: demo123
+Username: prosecutor1 | Password: demo123
+            </div>
+
+            <h3>Main Dashboard</h3>
+            <p>After login, you'll see:</p>
+            <ul>
+                <li><strong>Key Metrics</strong> — Overview of evidence and case statistics</li>
+                <li><strong>Quick Actions</strong> — Fast access to main functions</li>
+                <li><strong>Recent Activity</strong> — Log of recent operations</li>
+                <li><strong>Navigation Tabs</strong> — Access different sections</li>
+            </ul>
+        </div>
+
+        <!-- Keyboard Shortcuts -->
+        <div class="help-section" id="keyboard-shortcuts">
+            <h2>⌨️ Keyboard Shortcuts</h2>
+            
+            <div class="keyboard-shortcuts">
+                <div class="shortcut-row">
+                    <span class="shortcut-key">? / H</span>
+                    <span class="shortcut-desc">Show this help menu</span>
+                </div>
+                <div class="shortcut-row">
+                    <span class="shortcut-key">G</span>
+                    <span class="shortcut-desc">Go to dashboard (Home)</span>
+                </div>
+                <div class="shortcut-row">
+                    <span class="shortcut-key">S</span>
+                    <span class="shortcut-desc">Focus search box</span>
+                </div>
+                <div class="shortcut-row">
+                    <span class="shortcut-key">E</span>
+                    <span class="shortcut-desc">New evidence intake</span>
+                </div>
+                <div class="shortcut-row">
+                    <span class="shortcut-key">C</span>
+                    <span class="shortcut-desc">Cases view</span>
+                </div>
+                <div class="shortcut-row">
+                    <span class="shortcut-key">A</span>
+                    <span class="shortcut-desc">Analytics dashboard</span>
+                </div>
+                <div class="shortcut-row">
+                    <span class="shortcut-key">L</span>
+                    <span class="shortcut-desc">Logout</span>
+                </div>
+                <div class="shortcut-row">
+                    <span class="shortcut-key">T</span>
+                    <span class="shortcut-desc">Toggle theme</span>
+                </div>
+                <div class="shortcut-row">
+                    <span class="shortcut-key">F</span>
+                    <span class="shortcut-desc">Toggle favorite (on timeline)</span>
+                </div>
+                <div class="shortcut-row">
+                    <span class="shortcut-key">Escape</span>
+                    <span class="shortcut-desc">Close modals/cancel operations</span>
+                </div>
+            </div>
+
+            <p style="margin-top: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+                💡 <strong>Tip:</strong> Keyboard shortcuts are case-insensitive and can be used from any page.
+            </p>
+        </div>
+
+        <!-- Features Overview -->
+        <div class="help-section" id="features">
+            <h2>✨ Feature Overview</h2>
+            
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h4>📷 Scanner</h4>
+                    <p>Scan QR codes to quickly access evidence. Point your camera at any generated QR code to retrieve evidence details instantly.</p>
+                </div>
+                <div class="feature-card">
+                    <h4>🔍 Search</h4>
+                    <p>Full-text search across all evidence, cases, and custody events. Filter by status, date range, or organization.</p>
+                </div>
+                <div class="feature-card">
+                    <h4>📊 Analytics</h4>
+                    <p>View detailed analytics on evidence intake, custody actions, endorsements, and case patterns. Export data as JSON or CSV.</p>
+                </div>
+                <div class="feature-card">
+                    <h4>💚 Health Check</h4>
+                    <p>Real-time system health monitoring. Verify ledger chain integrity and cryptographic controls.</p>
+                </div>
+                <div class="feature-card">
+                    <h4>✓ Compliance</h4>
+                    <p>Track compliance status across multiple frameworks. Monitor control implementations and audit readiness.</p>
+                </div>
+                <div class="feature-card">
+                    <h4>📁 Cases</h4>
+                    <p>Manage multiple cases with associated evidence. View case-level audit summaries and compliance status.</p>
+                </div>
+                <div class="feature-card">
+                    <h4>🔒 Security Posture</h4>
+                    <p>View active cryptographic controls, data locations, and security measures. Verify encryption status.</p>
+                </div>
+                <div class="feature-card">
+                    <h4>🎯 Role-Based Access</h4>
+                    <p>Actions are controlled by role (Officer, Analyst, Prosecutor, Judge). Endorsement thresholds vary by action type.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- API Reference -->
+        <div class="help-section" id="api-reference">
+            <h2>🔌 API Reference</h2>
+            
+            <h3>Authentication Endpoints</h3>
+            <div class="api-endpoint"><span class="method-badge method-post">POST</span> /auth/login</div>
+            <p>Authenticate user and retrieve session token.</p>
+            
+            <div class="api-endpoint"><span class="method-badge method-post">POST</span> /auth/signup</div>
+            <p>Register new user account with role and organization.</p>
+            
+            <h3>Evidence Management</h3>
+            <div class="api-endpoint"><span class="method-badge method-post">POST</span> /evidence/intake</div>
+            <p>Register new evidence with file upload and SHA-256 hash computation.</p>
+            
+            <div class="api-endpoint"><span class="method-badge method-post">POST</span> /evidence/event</div>
+            <p>Record custody action (TRANSFER, ANALYSIS, etc.) with optional endorsement.</p>
+            
+            <div class="api-endpoint"><span class="method-badge method-get">GET</span> /evidence/{evidence_id}/timeline</div>
+            <p>Retrieve complete chain-of-custody timeline with all events and endorsements.</p>
+            
+            <div class="api-endpoint"><span class="method-badge method-post">POST</span> /evidence/{evidence_id}/verify</div>
+            <p>Verify evidence integrity (SHA-256) and record verification event.</p>
+            
+            <h3>Reporting & Artifacts</h3>
+            <div class="api-endpoint"><span class="method-badge method-get">GET</span> /evidence/{evidence_id}/report</div>
+            <p>Generate court-ready JSON report with complete evidence lifecycle.</p>
+            
+            <div class="api-endpoint"><span class="method-badge method-get">GET</span> /evidence/{evidence_id}/bundle</div>
+            <p>Download ZIP bundle containing report, PDF, ledger excerpt, and manifest.</p>
+            
+            <h3>System Operations</h3>
+            <div class="api-endpoint"><span class="method-badge method-get">GET</span> /health</div>
+            <p>System health check with ledger chain validation.</p>
+            
+            <div class="api-endpoint"><span class="method-badge method-get">GET</span> /security/posture</div>
+            <p>Security posture assessment with encryption and signing details.</p>
+
+            <p style="margin-top: 1rem; color: var(--text-secondary); font-size: 0.9rem;">
+                📚 For complete API documentation, visit: <code style="background: var(--bg-primary); padding: 0.2rem 0.4rem; border-radius: 3px;">http://127.0.0.1:8000/docs</code>
+            </p>
+        </div>
+
+        <!-- Troubleshooting -->
+        <div class="help-section" id="troubleshooting">
+            <h2>🔧 Troubleshooting</h2>
+            
+            <h3>❌ Login Not Working</h3>
+            <ul>
+                <li>Verify backend is running at <code>http://127.0.0.1:8000</code></li>
+                <li>Check username and password are correct</li>
+                <li>Clear browser cache (Ctrl+Shift+Delete)</li>
+                <li>Try opening in incognito/private window</li>
+                <li>Check browser console for errors (F12)</li>
+            </ul>
+
+            <h3>❌ Evidence Upload Failing</h3>
+            <ul>
+                <li>Ensure file size is reasonable (&lt; 2GB)</li>
+                <li>Verify you have upload permissions (FIELD_OFFICER role required)</li>
+                <li>Check backend is responding: <code>GET /health</code></li>
+                <li>Try smaller file first to isolate issue</li>
+            </ul>
+
+            <h3>❌ Buttons Not Working</h3>
+            <ul>
+                <li>Refresh the page (Ctrl+R / Cmd+R)</li>
+                <li>Clear LocalStorage: Open console and run <code>localStorage.clear()</code></li>
+                <li>Verify you're logged in (check header for user info)</li>
+                <li>Check that your role has permission for that action</li>
+            </ul>
+
+            <h3>❌ Slow Performance</h3>
+            <ul>
+                <li>Check network connection speed</li>
+                <li>Monitor System Performance (Windows Task Manager)</li>
+                <li>Restart backend server</li>
+                <li>Try accessing from different browser</li>
+                <li>Check system resources (CPU, disk space)</li>
+            </ul>
+
+            <h3>💾 Data Not Persisting</h3>
+            <ul>
+                <li>Verify database file exists: <code>data/sentinel.db</code></li>
+                <li>Check file permissions on data directory</li>
+                <li>Ensure disk has free space</li>
+                <li>Review backend logs for errors</li>
+            </ul>
+        </div>
+
+        <!-- Glossary -->
+        <div class="help-section" id="glossary">
+            <h2>📖 Glossary</h2>
+            
+            <h3>Evidence</h3>
+            <p>Digital or physical item collected during investigation, registered in the system with metadata and encryption.</p>
+            
+            <h3>Chain of Custody</h3>
+            <p>Immutable record of all individuals who have had access to evidence, custody events, and verification actions.</p>
+            
+            <h3>Custody Event</h3>
+            <p>Any action performed on evidence (INTAKE, TRANSFER, ANALYSIS, STORAGE, COURT_SUBMISSION, etc.) recorded on the ledger.</p>
+            
+            <h3>Endorsement</h3>
+            <p>Cryptographic approval of an action by an authorized organization. Multiple endorsements may be required for critical actions.</p>
+            
+            <h3>Ledger</h3>
+            <p>Append-only transaction log using hash-chain validation. Each entry is cryptographically signed.</p>
+            
+            <h3>Case</h3>
+            <p>Logical grouping of related evidence items, tracked for audit and compliance purposes.</p>
+            
+            <h3>Role</h3>
+            <p>User classification (Officer, Analyst, Prosecutor, Judge) that determines available actions and permissions.</p>
+            
+            <h3>Organization</h3>
+            <p>Entity or agency (KPS, FORENSIC_LAB, ODPP, etc.) associated with evidence handling and endorsements.</p>
+            
+            <h3>SHA-256</h3>
+            <p>Cryptographic hash function used to compute evidence integrity fingerprint. Cannot be forged.</p>
+            
+            <h3>Ed25519</h3>
+            <p>Elliptic curve signature algorithm used to cryptographically sign all ledger events for non-repudiation.</p>
+        </div>
+
+        <!-- Back Button -->
+        <div style="text-align: center; margin: 2rem 0;">
+            <button class="back-button" onclick="window.location.href='/'">← Back to Dashboard</button>
+        </div>
+    </main>
+
+    <footer style="text-align: center; padding: 2rem; color: var(--text-secondary); margin-top: 2rem; border-top: 1px solid var(--border-color);">
+        <p>Tracey's Sentinel — Forensic Evidence Chain of Custody Management System</p>
+        <p style="font-size: 0.85rem;">
+            For support, visit <a href="https://github.com" style="color: var(--accent); text-decoration: none;">GitHub</a> or 
+            check the main README.md file.
+        </p>
+    </footer>
+
+    <script>
+        // Keyboard shortcuts for help
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                window.location.href = '/';
+            }
+        });
+
+        // Smooth scrolling for TOC links
+        document.querySelectorAll('.toc a').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const target = document.querySelector(link.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
