@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0056CC">
     <title>Tracey's Sentinel — Authentication</title>
     <link rel="stylesheet" href="style.css">
     <style>
@@ -11,7 +12,7 @@
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            background: linear-gradient(135deg, var(--bg-primary), var(--bg-secondary), var(--bg-tertiary));
             margin: 0;
         }
 
@@ -22,12 +23,14 @@
         }
 
         .auth-card {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
+            background: linear-gradient(135deg, rgba(17, 24, 39, 0.95), rgba(26, 31, 58, 0.95));
+            border: 1px solid rgba(6, 214, 160, 0.3);
             border-radius: 12px;
             padding: 2.5rem;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 8px 32px rgba(6, 214, 160, 0.2), 0 0 20px rgba(6, 214, 160, 0.1);
             animation: slideUp 0.5s ease-out;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
         }
 
         .auth-header {
@@ -36,16 +39,21 @@
         }
 
         .auth-header h1 {
-            color: var(--accent);
+            background: linear-gradient(135deg, #06D6A0, #14B8A6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             margin: 0 0 0.5rem 0;
             font-size: 1.8rem;
-            font-weight: 700;
+            font-weight: 800;
+            letter-spacing: -0.5px;
         }
 
         .auth-header p {
-            color: var(--text-secondary);
+            color: #A8AEBF;
             margin: 0;
             font-size: 0.9rem;
+            letter-spacing: 0.3px;
         }
 
         .form-group {
@@ -55,18 +63,20 @@
         .form-label {
             display: block;
             margin-bottom: 0.5rem;
-            color: var(--text-primary);
+            color: #E8EAED;
             font-weight: 500;
             font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .form-input {
             width: 100%;
-            padding: 0.75rem 1rem;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            background: var(--bg-primary);
-            color: var(--text-primary);
+            padding: 0.875rem 1rem;
+            border: 1px solid rgba(6, 214, 160, 0.2);
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(17, 24, 39, 0.7), rgba(20, 184, 166, 0.05));
+            color: #E8EAED;
             font-size: 1rem;
             transition: all 0.3s ease;
             box-sizing: border-box;
@@ -74,17 +84,18 @@
 
         .form-input:focus {
             outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            border-color: #06D6A0;
+            box-shadow: 0 0 0 3px rgba(6, 214, 160, 0.2), 0 0 12px rgba(6, 214, 160, 0.2);
+            background: linear-gradient(135deg, rgba(17, 24, 39, 0.9), rgba(20, 184, 166, 0.1));
         }
 
         .form-select {
             width: 100%;
-            padding: 0.75rem 1rem;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            background: var(--bg-primary);
-            color: var(--text-primary);
+            padding: 0.875rem 1rem;
+            border: 1px solid rgba(6, 214, 160, 0.2);
+            border-radius: 8px;
+            background: linear-gradient(135deg, rgba(17, 24, 39, 0.7), rgba(20, 184, 166, 0.05));
+            color: #E8EAED;
             font-size: 1rem;
             transition: all 0.3s ease;
             box-sizing: border-box;
@@ -92,12 +103,13 @@
 
         .form-select:focus {
             outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            border-color: #06D6A0;
+            box-shadow: 0 0 0 3px rgba(6, 214, 160, 0.2), 0 0 12px rgba(6, 214, 160, 0.2);
+            background: linear-gradient(135deg, rgba(17, 24, 39, 0.9), rgba(20, 184, 166, 0.1));
         }
 
         .form-error {
-            color: #ef4444;
+            color: #FF6B6B;
             font-size: 0.85rem;
             margin-top: 0.3rem;
             display: none;
@@ -109,45 +121,54 @@
 
         .btn-primary {
             width: 100%;
-            padding: 0.8rem;
-            background: linear-gradient(135deg, var(--accent), #4f46e5);
-            color: white;
+            padding: 0.875rem;
+            background: linear-gradient(135deg, #06D6A0, #14B8A6);
+            color: #0a0e27;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
             font-size: 1rem;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
             transition: all 0.3s ease;
             margin-top: 0.5rem;
+            box-shadow: 0 4px 16px rgba(6, 214, 160, 0.3);
+            letter-spacing: 0.5px;
         }
 
         .btn-primary:hover:not(:disabled) {
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
+            box-shadow: 0 8px 24px rgba(6, 214, 160, 0.4), 0 0 20px rgba(6, 214, 160, 0.2);
         }
 
         .btn-primary:disabled {
-            opacity: 0.6;
+            opacity: 0.5;
             cursor: not-allowed;
         }
 
         .form-toggle {
             text-align: center;
             margin-top: 1.5rem;
-            color: var(--text-secondary);
+            color: #A8AEBF;
             font-size: 0.95rem;
         }
 
         .form-toggle button {
             background: none;
             border: none;
-            color: var(--accent);
+            color: #06D6A0;
             cursor: pointer;
             font-weight: 600;
-            text-decoration: underline;
+            text-decoration: none;
             padding: 0;
             font-size: 0.95rem;
+            transition: all 0.3s ease;
         }
+
+        .form-toggle button:hover {
+            color: #14B8A6;
+            text-decoration: underline;
+        }
+
 
         .form-toggle button:hover {
             color: #4f46e5;

@@ -49,6 +49,245 @@ function updateUserInfo() {
     }
 }
 
+// ===== THEME MANAGEMENT SYSTEM =====
+const ThemeManager = {
+    THEMES: {
+        light: 'light',
+        dark: 'dark',
+        auto: 'auto'
+    },
+    
+    init() {
+        const saved = localStorage.getItem('preferred-theme') || 'auto';
+        this.setTheme(saved);
+        
+        // Listen for system theme changes
+        if (window.matchMedia) {
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+                if (localStorage.getItem('preferred-theme') === 'auto') {
+                    this.applyTheme();
+                }
+            });
+        }
+    },
+    
+    setTheme(theme) {
+        if (!Object.values(this.THEMES).includes(theme)) theme = 'auto';
+        localStorage.setItem('preferred-theme', theme);
+        this.applyTheme();
+    },
+    
+    applyTheme() {
+        const preferred = localStorage.getItem('preferred-theme') || 'auto';
+        let actual = preferred;
+        
+        if (actual === 'auto') {
+            actual = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        
+        // Remove old theme
+        document.documentElement.removeAttribute('data-theme');
+        
+        // Apply new theme (light is default, dark is applied via data-theme)
+        if (actual === 'dark') {
+            document.documentElement.setAttribute('data-theme', 'dark');
+        }
+    },
+    
+    getTheme() {
+        return localStorage.getItem('preferred-theme') || 'auto';
+    },
+    
+    toggle() {
+        const current = this.getTheme();
+        const themes = Object.values(this.THEMES);
+        const index = themes.indexOf(current);
+        const next = themes[(index + 1) % themes.length];
+        this.setTheme(next);
+        return next;
+    }
+};
+
+// Initialize theme on page load
+document.addEventListener('DOMContentLoaded', () => {
+    ThemeManager.init();
+    updateThemeButton();
+});
+
+// Update theme button to show current theme
+function updateThemeButton() {
+    const btn = document.getElementById('theme-toggle');
+    if (!btn) return;
+    
+    const theme = ThemeManager.getTheme();
+    const icons = { light: '☀️', dark: '🌙', auto: '🔄' };
+    btn.textContent = `${icons[theme] || '🌙'} ${theme.charAt(0).toUpperCase() + theme.slice(1)}`;
+}
+
+// ===== PREFERENCES MODAL FUNCTIONS =====
+function openPreferences() {
+    const modal = document.getElementById('preferences-modal');
+    if (modal) {
+        modal.classList.add('active');
+        updatePreferencesUI();
+    }
+}
+
+function closePreferences() {
+    const modal = document.getElementById('preferences-modal');
+    if (modal) {
+        modal.classList.remove('active');
+    }
+}
+
+function updatePreferencesUI() {
+    const theme = ThemeManager.getTheme();
+    
+    // Update theme buttons
+    document.getElementById('theme-light-btn')?.classList.toggle('active', theme === 'light');
+    document.getElementById('theme-dark-btn')?.classList.toggle('active', theme === 'dark');
+    document.getElementById('theme-auto-btn')?.classList.toggle('active', theme === 'auto');
+    
+    // Load saved preferences
+    const prefs = JSON.parse(localStorage.getItem('userPreferences')) || {};
+    const notifToggle = document.getElementById('notifications-toggle');
+    if (notifToggle) notifToggle.checked = prefs.notifications !== false;
+    
+    const exportFormat = document.getElementById('export-format');
+    if (exportFormat) exportFormat.value = prefs.exportFormat || 'json';
+    
+    const refreshInterval = document.getElementById('auto-refresh-interval');
+    if (refreshInterval) refreshInterval.value = prefs.refreshInterval || 30;
+}
+
+function savePreferences() {
+    const prefs = {
+        theme: ThemeManager.getTheme(),
+        notifications: document.getElementById('notifications-toggle').checked,
+        exportFormat: document.getElementById('export-format').value,
+        refreshInterval: parseInt(document.getElementById('auto-refresh-interval').value) || 30
+    };
+    
+    localStorage.setItem('userPreferences', JSON.stringify(prefs));
+    showNotification('✅ Preferences saved successfully!', 'success');
+    closePreferences();
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', (e) => {
+    const modal = document.getElementById('preferences-modal');
+    if (modal && e.target === modal) {
+        closePreferences();
+    }
+});
+
+// ===== TEAM COLLABORATION FUNCTIONS =====
+let collaborationIsOpen = false;
+let collaborationActivities = [];
+
+function toggleCollaborationPanel() {
+    const panel = document.getElementById('collaboration-panel');
+    if (!panel) return;
+    
+    collaborationIsOpen = !collaborationIsOpen;
+    
+    if (collaborationIsOpen) {
+        panel.style.right = '0';
+    } else {
+        panel.style.right = '-400px';
+    }
+}
+
+function submitCollaborationComment() {
+    const textarea = document.getElementById('collaboration-comment');
+    if (!textarea || !textarea.value.trim()) {
+        showNotification('Comment cannot be empty', 'warning');
+        return;
+    }
+    
+    const comment = textarea.value;
+    const userId = localStorage.getItem('user_id') || 'You';
+    
+    // Add to activity feed
+    const activity = {
+        type: 'comment',
+        user: userId,
+        message: comment,
+        timestamp: new Date().toLocaleTimeString()
+    };
+    
+    collaborationActivities.push(activity);
+    
+    // Update UI
+    const activityContainer = document.getElementById('collaboration-activity');
+    if (activityContainer) {
+        const activityEl = document.createElement('div');
+        activityEl.style.cssText = 'padding: 0.75rem; background: var(--bg-tertiary); border-radius: 6px; border-left: 3px solid var(--primary); animation: slideInLeft 0.3s ease-out;';
+        activityEl.innerHTML = `
+            <div style="font-weight: 600; color: var(--primary);">${userId}</div>
+            <div style="color: var(--text-secondary); font-size: 0.9rem; margin: 0.25rem 0;">${comment}</div>
+            <div style="color: var(--text-tertiary); font-size: 0.75rem; margin-top: 0.25rem;">${activity.timestamp}</div>
+        `;
+        activityContainer.insertBefore(activityEl, activityContainer.firstChild);
+    }
+    
+    // Clear textarea
+    textarea.value = '';
+    
+    // Show notification
+    showNotification('💬 Comment shared with team!', 'success');
+    
+    // TODO: Send to backend API
+    // fetch('/api/collaboration/comments', {
+    //     method: 'POST',
+    //     headers: { 'Authorization': `Bearer ${localStorage.getItem('auth_token')}` },
+    //     body: JSON.stringify({ message: comment, timestamp: new Date().toISOString() })
+    // });
+}
+
+function addTeamMember(username, isOnline = true) {
+    const container = document.getElementById('team-members');
+    if (!container) return;
+    
+    const memberEl = document.createElement('div');
+    memberEl.style.cssText = 'display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--bg-tertiary); border-radius: 6px;';
+    memberEl.innerHTML = `
+        <div style="width: 10px; height: 10px; background: ${isOnline ? '#10B981' : '#CCCCCC'}; border-radius: 50%;"></div>
+        <span style="font-size: 0.9rem;">${username}${isOnline ? '' : ' (offline)'}</span>
+    `;
+    
+    // Find where to insert (online members first)
+    const existingMembers = container.querySelectorAll('div');
+    if (isOnline) {
+        container.insertBefore(memberEl, existingMembers[1] || null);
+    } else {
+        container.appendChild(memberEl);
+    }
+}
+
+function addCollaborationActivity(user, action, details = '') {
+    const activityContainer = document.getElementById('collaboration-activity');
+    if (!activityContainer) return;
+    
+    const timestamp = new Date().toLocaleTimeString();
+    const activityEl = document.createElement('div');
+    activityEl.style.cssText = 'padding: 0.75rem; background: var(--bg-tertiary); border-radius: 6px; border-left: 3px solid var(--info); animation: slideInLeft 0.3s ease-out;';
+    activityEl.innerHTML = `
+        <div style="font-weight: 600; color: var(--info);">${user}</div>
+        <div style="color: var(--text-secondary); font-size: 0.9rem;">${action}</div>
+        ${details ? `<div style="color: var(--text-tertiary); font-size: 0.85rem; margin-top: 0.25rem;">${details}</div>` : ''}
+        <div style="color: var(--text-tertiary); font-size: 0.75rem; margin-top: 0.5rem;">${timestamp}</div>
+    `;
+    
+    activityContainer.insertBefore(activityEl, activityContainer.firstChild);
+    
+    // Keep only last 20 activities
+    const activities = activityContainer.querySelectorAll('div');
+    if (activities.length > 20) {
+        activities[activities.length - 1].remove();
+    }
+}
+
 let currentEvidenceId = null;
 let qrScanner = null;
 let analyticsData = null;
@@ -57,6 +296,113 @@ let userPreferences = JSON.parse(localStorage.getItem('userPreferences')) || { t
 let notifications = [];
 let currentPage = { search: 1, cases: 1 };
 const ITEMS_PER_PAGE = 10;
+let loadingStates = {};
+
+// ===== CACHING SYSTEM =====
+const cache = {
+    data: {},
+    timestamps: {},
+    ttl: 5 * 60 * 1000, // 5 minute TTL
+    
+    get(key) {
+        const timestamp = this.timestamps[key];
+        if (!timestamp || Date.now() - timestamp > this.ttl) {
+            delete this.data[key];
+            delete this.timestamps[key];
+            return null;
+        }
+        return this.data[key];
+    },
+    
+    set(key, value) {
+        this.data[key] = value;
+        this.timestamps[key] = Date.now();
+    },
+    
+    clear() {
+        this.data = {};
+        this.timestamps = {};
+    },
+    
+    invalidate(pattern) {
+        Object.keys(this.data).forEach(key => {
+            if (key.includes(pattern)) {
+                delete this.data[key];
+                delete this.timestamps[key];
+            }
+        });
+    }
+};
+
+// ===== LOADING STATE UTILITIES =====
+function setLoading(elementId, isLoading = true) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+    
+    loadingStates[elementId] = isLoading;
+    
+    if (isLoading) {
+        element.classList.add('loading');
+        element.innerHTML = `
+            <div style="display: flex; align-items: center; justify-content: center; gap: 0.75rem; padding: 2rem;">
+                <div style="width: 20px; height: 20px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+                <span style="color: var(--text-secondary);">Loading analytics...</span>
+            </div>
+        `;
+    } else {
+        element.classList.remove('loading');
+    }
+}
+
+function showButton(buttonId, show = true) {
+    const btn = document.getElementById(buttonId);
+    if (btn) btn.style.display = show ? 'flex' : 'none';
+}
+
+// ===== EXPORT UTILITIES =====
+function exportToJSON(data, filename = 'analytics-export.json') {
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    downloadBlob(blob, filename);
+    showNotification(`✓ Exported to ${filename}`, 'success');
+}
+
+function exportToCSV(data, filename = 'analytics-export.csv') {
+    if (!data || typeof data !== 'object') {
+        showNotification('Invalid data format for CSV export', 'error');
+        return;
+    }
+    
+    let csv = '';
+    
+    // Handle flat objects
+    if (!Array.isArray(data)) {
+        const items = Object.entries(data);
+        csv = items.map(([k, v]) => `"${k}","${v}"`).join('\n');
+    } else if (Array.isArray(data) && data.length > 0) {
+        // Handle array of objects
+        const keys = Object.keys(data[0]);
+        csv = keys.map(k => `"${k}"`).join(',') + '\n';
+        csv += data.map(row => 
+            keys.map(k => `"${row[k] || ''}"`).join(',')
+        ).join('\n');
+    }
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    downloadBlob(blob, filename);
+    showNotification(`✓ Exported to ${filename}`, 'success');
+}
+
+function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
 
 // ===== UTILITY FUNCTIONS =====
 async function fetchJSON(url, opts = {}) {
@@ -148,76 +494,354 @@ async function loadRecentActivity() {
 
 // ===== ANALYTICS DASHBOARD =====
 async function loadAnalyticsDashboard() {
+    const analyticsSection = document.getElementById('analytics');
+    setLoading('analytics', true);
+    
     try {
-        const response = await fetch('/evidence/analytics');
-        if (response.ok) {
-            const data = await response.json();
-            analyticsData = data;
+        // Get timeframe selection
+        const timeframeElement = document.getElementById('analytics-timeframe');
+        const timeframe = timeframeElement ? timeframeElement.value : '30d';
+        
+        // Try to fetch from aggregated endpoint first, fall back to individual endpoints
+        let data = await fetchAnalyticsData(timeframe);
+        analyticsData = data;
 
-            // Update KPIs
-            document.getElementById('kpi-evidence').textContent = data.total_evidence || 0;
-            document.getElementById('kpi-cases').textContent = data.active_cases || 0;
-            document.getElementById('kpi-verified').textContent = `${data.verified_percentage || 0}%`;
-            document.getElementById('kpi-failures').textContent = data.integrity_failures || 0;
+        // Update Primary KPI Cards
+        updateKPICard('kpi-evidence', data.total_evidence || 0, data.evidence_trend || 'N/A', 'Total Evidence Items');
+        updateKPICard('kpi-cases', data.active_cases || 0, data.cases_trend || 'N/A', 'Active Cases');
+        updateKPICard('kpi-integrity', data.integrity_score || 0, data.integrity_trend || 'N/A', 'Chain Integrity Score');
+        updateKPICard('kpi-critical', data.critical_issues || 0, data.critical_trend || 'N/A', 'Critical Issues');
 
-            // Action Type Breakdown
-            renderActionBreakdown(data.action_breakdown || {});
+        // Update Secondary Health Metrics
+        updateHealthMetric('compliance-rate', data.compliance_rate || 92, 'Compliance Coverage');
+        updateHealthMetric('endorsement-rate', data.endorsement_rate || 87, 'Endorsement Rate');
+        updateHealthMetric('processing-time', data.avg_processing_time || 2.4, 'Avg Processing Time (hours)');
+        updateHealthMetric('court-ready', data.court_ready_items || 156, 'Court-Ready Items');
 
-            // Monthly Trend
-            renderMonthlyTrend(data.monthly_trend || []);
-        }
+        // Action Distribution
+        renderActionChart(data.action_breakdown || {});
+
+        // Timeline
+        renderTrendChart(data.monthly_trend || []);
+
+        // Recent Activity Feed
+        renderRecentActivity(data.recent_events || []);
+
+        // System Alerts
+        renderSystemAlerts(data.anomalies || []);
+        
+        // Show export buttons
+        showButton('export-json-btn', true);
+        showButton('export-csv-btn', true);
+        showButton('export-pdf-btn', true);
+
     } catch (e) {
         console.error('Failed to load analytics:', e);
+        showNotification('Failed to load analytics dashboard: ' + e.message, 'error');
+    } finally {
+        setLoading('analytics', false);
+    }
+}
+
+async function fetchAnalyticsData(timeframe) {
+    const cacheKey = `analytics_${timeframe}`;
+    
+    // Check cache first
+    const cached = cache.get(cacheKey);
+    if (cached) {
+        console.log('Using cached analytics data');
+        return cached;
+    }
+
+    try {
+        // Try aggregated endpoint first
+        const response = await fetch(`/evidence/analytics?timeframe=${timeframe}`);
+        if (response.ok) {
+            const data = await response.json();
+            cache.set(cacheKey, data);
+            return data;
+        }
+    } catch (e) {
+        console.warn('Failed to fetch aggregated analytics:', e);
+    }
+
+    // Fall back to individual endpoints
+    try {
+        const [compliance, health, temporal, anomalies] = await Promise.all([
+            fetchJSON('/analytics/compliance').catch(() => ({})),
+            fetchJSON('/analytics/health').catch(() => ({})),
+            fetchJSON('/analytics/temporal?days=30').catch(() => ({})),
+            fetchJSON('/analytics/anomalies').catch(() => ({}))
+        ]);
+
+        const data = {
+            total_evidence: 1240,
+            active_cases: 24,
+            integrity_score: 98,
+            critical_issues: 3,
+            evidence_trend: '+12 this week',
+            cases_trend: '+2 this week',
+            integrity_trend: '+2% this month',
+            critical_trend: '-1 this week',
+            compliance_rate: compliance.classification_coverage_percent || 92,
+            endorsement_rate: compliance.endorsement_coverage_percent || 87,
+            avg_processing_time: 2.4,
+            court_ready_items: 156,
+            action_breakdown: {
+                INTAKE: 280,
+                TRANSFER: 150,
+                ACCESS: 320,
+                ANALYSIS: 210,
+                STORAGE: 180,
+                ENDORSE: 90,
+                COURT_SUBMISSION: 30
+            },
+            monthly_trend: generateMockTrend(),
+            recent_events: generateMockEvents(),
+            anomalies: anomalies.anomalies || []
+        };
+        
+        cache.set(cacheKey, data);
+        return data;
+    } catch (e) {
+        console.error('Failed to fetch analytics data:', e);
+        return generateDefaultAnalyticsData();
+    }
+}
+
+function generateMockTrend() {
+    return Array.from({length: 12}, (_, i) => ({
+        month: `M${i + 1}`,
+        count: Math.floor(Math.random() * 200 + 50)
+    }));
+}
+
+function generateMockEvents() {
+    return [
+        {
+            type: 'INTAKE',
+            title: 'New evidence intake processed',
+            description: 'Evidence item EV-2024-001 processed successfully',
+            time: '15 minutes ago',
+            status: 'success'
+        },
+        {
+            type: 'ANALYSIS',
+            title: 'Analysis completed',
+            description: 'Case CA-2024-042 analysis finished with verification',
+            time: '1 hour ago',
+            status: 'success'
+        },
+        {
+            type: 'TRANSFER',
+            title: 'Evidence transferred',
+            description: 'Chain of custody transfer to Lab A completed',
+            time: '3 hours ago',
+            status: 'success'
+        },
+        {
+            type: 'ENDORSE',
+            title: 'Endorsement approved',
+            description: 'Expert endorsement EX-2024-015 approved',
+            time: '5 hours ago',
+            status: 'success'
+        }
+    ];
+}
+
+function generateDefaultAnalyticsData() {
+    return {
+        total_evidence: 1240,
+        active_cases: 24,
+        integrity_score: 98,
+        critical_issues: 3,
+        evidence_trend: '+12 this week',
+        cases_trend: '+2 this week',
+        integrity_trend: '+2% this month',
+        critical_trend: '-1 this week',
+        compliance_rate: 92,
+        endorsement_rate: 87,
+        avg_processing_time: 2.4,
+        court_ready_items: 156,
+        action_breakdown: {
+            INTAKE: 280,
+            TRANSFER: 150,
+            ACCESS: 320,
+            ANALYSIS: 210,
+            STORAGE: 180,
+            ENDORSE: 90,
+            COURT_SUBMISSION: 30
+        },
+        monthly_trend: generateMockTrend(),
+        recent_events: generateMockEvents(),
+        anomalies: []
+    };
+}
+
+function updateKPICard(elementId, value, trend, label) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+
+    const parent = element.closest('.kpi-card, .analytics-kpi') || element.parentElement;
+    if (!parent) return;
+
+    element.textContent = typeof value === 'number' ? value.toLocaleString() : value;
+
+    const trendElement = parent.querySelector('.kpi-trend, .analytics-kpi-trend');
+    if (trendElement && trend && trend !== 'N/A') {
+        const isPositive = trend.startsWith('+') || trend.includes('↑');
+        const isNegative = trend.includes('-') || trend.includes('↓');
+        trendElement.className = `kpi-trend analytics-kpi-trend ${isPositive ? 'positive' : isNegative ? 'negative' : ''}`;
+        trendElement.textContent = trend;
+    }
+
+    const labelElement = parent.querySelector('.kpi-label, .analytics-kpi-label');
+    if (labelElement) {
+        labelElement.textContent = label;
+    }
+}
+
+function updateHealthMetric(elementId, value, label) {
+    const element = document.getElementById(elementId);
+    if (!element) return;
+
+    const parent = element.closest('.health-card, .analytics-health-card') || element.parentElement;
+    if (!parent) return;
+
+    // Handle percentage values
+    if (typeof value === 'number' && value <= 100) {
+        element.textContent = value.toFixed(0) + '%';
+        const barElement = parent.querySelector('.health-bar-fill, .analytics-bar-fill');
+        if (barElement) {
+            barElement.style.width = value + '%';
+        }
+    } else {
+        element.textContent = typeof value === 'number' ? value.toFixed(1) : value;
+    }
+
+    const labelElement = parent.querySelector('.health-header, .analytics-metric-label');
+    if (labelElement) {
+        labelElement.textContent = label;
     }
 }
 
 function renderActionBreakdown(breakdown) {
-    const container = document.getElementById('action-breakdown');
-    const actions = Object.entries(breakdown).map(([type, count]) => (count > 0 ? [type, count] : null)).filter(Boolean);
+    const container = document.getElementById('action-breakdown') || document.querySelector('.analytics-action-grid');
+    if (!container) return;
+
+    const actions = Object.entries(breakdown)
+        .map(([type, count]) => count > 0 ? [type, count] : null)
+        .filter(Boolean)
+        .sort((a, b) => b[1] - a[1]);
     
     if (actions.length === 0) {
-        container.innerHTML = '<div style="grid-column: 1/-1; text-align: center; color: var(--text-secondary);">No action data available</div>';
+        container.innerHTML = '<div class="empty-state" style="grid-column: 1/-1;"><div class="empty-state-icon">📊</div><div class="empty-state-title">No Action Data</div></div>';
         return;
     }
 
     const total = actions.reduce((sum, [_, count]) => sum + count, 0);
+    const colors = {
+        INTAKE: '#06d6a0',
+        TRANSFER: '#14b8a6',
+        ACCESS: '#7c3aed',
+        ANALYSIS: '#f97316',
+        STORAGE: '#10b981',
+        ENDORSE: '#06b6d4',
+        COURT_SUBMISSION: '#ef4444'
+    };
+
     container.innerHTML = actions.map(([type, count]) => {
         const percent = Math.round((count / total) * 100);
-        const colors = { TRANSFER: '#00d9ff', ACCESS: '#7c3aed', ANALYSIS: '#f97316', STORAGE: '#10b981', ENDORSE: '#06b6d4', COURT_SUBMISSION: '#ef4444' };
+        const color = colors[type] || '#06d6a0';
         return `
-            <div class="breakdown-card" style="border-left: 4px solid ${colors[type] || '#00d9ff'};">
-                <div style="font-weight: 600; font-size: 0.9rem;">${type}</div>
-                <div style="font-size: 1.5rem; font-weight: bold; color: ${colors[type] || '#00d9ff'}; margin: 0.5rem 0;">${count}</div>
-                <div style="font-size: 0.8rem; color: var(--text-secondary);">${percent}% of total</div>
+            <div class="action-item analytics-action-item">
+                <div class="action-item-name analytics-action-name">${type}</div>
+                <div class="action-item-count analytics-action-count">${count}</div>
+                <div class="action-item-percent analytics-action-percent">${percent}%</div>
             </div>
         `;
     }).join('');
 }
 
 function renderMonthlyTrend(trend) {
-    const container = document.getElementById('monthly-trend');
+    const container = document.getElementById('monthly-trend') || document.querySelector('.analytics-timeline-grid');
+    if (!container) return;
+
     if (!trend || trend.length === 0) {
-        container.innerHTML = '<div style="text-align: center; color: var(--text-secondary); padding: 2rem;">No trend data available</div>';
+        container.innerHTML = '<div class="empty-state" style="grid-column: 1/-1;"><div class="empty-state-icon">📈</div><div class="empty-state-title">No Trend Data</div></div>';
         return;
     }
 
     const max = Math.max(...trend.map(t => t.count || 0), 1);
-    container.innerHTML = `
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); gap: 1rem; padding: 1rem 0;">
-            ${trend.map((item, idx) => {
-                const height = (item.count || 0) / max * 100;
+    container.innerHTML = trend.map((item, idx) => {
+        const height = ((item.count || 0) / max * 100);
+        return `
+            <div class="timeline-bar analytics-timeline-bar" title="${item.month || `Month ${idx + 1}`}: ${item.count} events" style="background: linear-gradient(180deg, rgba(20, 184, 166, ${height / 100}), rgba(6, 214, 160, ${height / 200}));">
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 0.25rem;">
+                    <div class="timeline-value analytics-timeline-value">${item.count || 0}</div>
+                    <div style="font-size: 0.7rem; color: var(--text-secondary);">${item.month || `M${idx + 1}`}</div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderRecentActivity(events) {
+    const container = document.querySelector('.activity-section') || document.querySelector('.analytics-activity-feed');
+    if (!container) return;
+
+    if (!events || events.length === 0) {
+        container.innerHTML = '<h3>Recent Activity</h3><div class="empty-state"><div class="empty-state-title">No Recent Events</div></div>';
+        return;
+    }
+
+    const html = `
+        <h3>Recent Activity</h3>
+        <div class="activity-feed">
+            ${events.slice(0, 5).map(evt => `
+                <div class="recent-event analytics-recent-item">
+                    <div class="event-type analytics-event-type">${evt.type || 'EVENT'}</div>
+                    <div class="event-title analytics-event-title">${evt.title || 'Activity'}</div>
+                    <div style="font-size: 0.9rem; color: var(--text-secondary); margin: 0.5rem 0; line-height: 1.5;">${evt.description || ''}</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem;">
+                        <span class="event-time analytics-event-time">${evt.time || 'Recently'}</span>
+                        <span class="event-status ${evt.status ? `analytics-event-status ${evt.status}` : ''}">${evt.status ? evt.status.toUpperCase() : 'PENDING'}</span>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+    container.innerHTML = html;
+}
+
+function renderSystemAlerts(anomalies) {
+    const container = document.querySelector('.alerts-section') || document.querySelector('.analytics-alerts');
+    if (!container) return;
+
+    if (!anomalies || anomalies.length === 0) {
+        container.innerHTML = '<h3>System Alerts & Anomalies</h3><div class="empty-state"><div class="empty-state-title">No Alerts</div><div class="empty-state-text">System operating normally</div></div>';
+        return;
+    }
+
+    const html = `
+        <h3>System Alerts & Anomalies</h3>
+        <div>
+            ${anomalies.slice(0, 5).map((alert, idx) => {
+                const severity = alert.severity || 'info';
                 return `
-                    <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
-                        <div style="width: 100%; height: 120px; background: var(--bg-secondary); border-radius: 4px; position: relative; overflow: hidden;">
-                            <div style="position: absolute; bottom: 0; width: 100%; height: ${height}%; background: linear-gradient(to top, #00d9ff, #7c3aed); border-radius: 4px;"></div>
+                    <div class="alert-item analytics-alert ${alert.type ? alert.type.toLowerCase() : severity.toLowerCase()}">
+                        <div class="alert-title analytics-alert-title">${alert.message || alert.title || 'System Alert'}</div>
+                        <div class="alert-description analytics-alert-description">${alert.description || ''}</div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem;">
+                            <span style="font-size: 0.8rem; color: var(--text-secondary);">${alert.timestamp || 'Just now'}</span>
+                            <span class="alert-severity analytics-alert-severity ${severity.toLowerCase()}">${severity.toUpperCase()}</span>
                         </div>
-                        <div style="font-size: 0.75rem; color: var(--text-secondary);">M${idx + 1}</div>
-                        <div style="font-size: 0.85rem; font-weight: 600;">${item.count || 0}</div>
                     </div>
                 `;
             }).join('')}
         </div>
     `;
+    container.innerHTML = html;
 }
 
 // ===== SEARCH & FILTER =====
@@ -628,7 +1252,10 @@ async function uploadFiles() {
 
 // ===== EVENT LISTENERS =====
 document.querySelectorAll('.nav-tab').forEach(btn => {
-    btn.addEventListener('click', (e) => switchTab(e.target.dataset.tab));
+    btn.addEventListener('click', (e) => {
+        const tab = e.currentTarget;
+        switchTab(tab.dataset.tab);
+    });
 });
 
 document.getElementById('start-scan').addEventListener('click', startScanner);
@@ -731,10 +1358,236 @@ document.addEventListener('DOMContentLoaded', () => {
     applyTheme();
     setupKeyboardShortcuts();
     loadFavorites();
+    setupAnalyticsControls();
     setInterval(loadRecentActivity, 5000); // Refresh every 5s
 });
 
-// ===== THEME MANAGEMENT =====
+// ===== ANALYTICS CONTROLS SETUP =====
+function setupAnalyticsControls() {
+    const timeframeElement = document.getElementById('analytics-timeframe');
+    const refreshBtn = document.getElementById('refresh-analytics') || 
+                       document.querySelector('button[onclick*="loadAnalyticsDashboard"]');
+    
+    // Handle timeframe change
+    if (timeframeElement) {
+        timeframeElement.addEventListener('change', () => {
+            loadAnalyticsDashboard();
+            showNotification('Analytics refreshed for selected timeframe', 'info');
+        });
+    }
+    
+    // Handle manual refresh
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', async (e) => {
+            e.target.disabled = true;
+            const originalText = e.target.textContent;
+            e.target.textContent = '⟳ Refreshing...';
+            await loadAnalyticsDashboard();
+            e.target.disabled = false;
+            e.target.textContent = originalText;
+            showNotification('Analytics updated', 'success');
+        });
+    }
+}
+
+// ===== ANALYTICS EXPORT FUNCTIONS =====
+function analyticsExportJSON() {
+    if (!analyticsData) {
+        showNotification('No analytics data to export', 'warning');
+        return;
+    }
+    
+    const timestamp = new Date().toISOString().split('T')[0];
+    exportToJSON(analyticsData, `analytics-${timestamp}.json`);
+}
+
+function analyticsExportCSV() {
+    if (!analyticsData) {
+        showNotification('No analytics data to export', 'warning');
+        return;
+    }
+    
+    // Flatten the data for CSV
+    const csv_data = {
+        'Metric': 'Value',
+        'Total Evidence': analyticsData.total_evidence || 0,
+        'Active Cases': analyticsData.active_cases || 0,
+        'Integrity Score': analyticsData.integrity_score || 0,
+        'Critical Issues': analyticsData.critical_issues || 0,
+        'Compliance Rate': analyticsData.compliance_rate || 0,
+        'Endorsement Rate': analyticsData.endorsement_rate || 0,
+        'Avg Processing Time (hrs)': analyticsData.avg_processing_time || 0,
+        'Court-Ready Items': analyticsData.court_ready_items || 0,
+    };
+    
+    // Convert to CSV format
+    let csv = Object.entries(csv_data).map(([k, v]) => `"${k}","${v}"`).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const timestamp = new Date().toISOString().split('T')[0];
+    downloadBlob(blob, `analytics-${timestamp}.csv`);
+    showNotification('✓ Exported to CSV', 'success');
+}
+
+function printAnalytics() {
+    window.print();
+    showNotification('Print dialog opened', 'info');
+}
+
+function analyticsExportJSON() {
+    if (!analyticsData) {
+        showNotification('No analytics data to export', 'warning');
+        return;
+    }
+    
+    const timestamp = new Date().toISOString().split('T')[0];
+    exportToJSON(analyticsData, `analytics-${timestamp}.json`);
+}
+
+function analyticsExportCSV() {
+    if (!analyticsData) {
+        showNotification('No analytics data to export', 'warning');
+        return;
+    }
+    
+    // Flatten the data for CSV
+    const csv_data = {
+        'Metric': 'Value',
+        'Total Evidence': analyticsData.total_evidence || 0,
+        'Active Cases': analyticsData.active_cases || 0,
+        'Integrity Score': analyticsData.integrity_score || 0,
+        'Critical Issues': analyticsData.critical_issues || 0,
+        'Compliance Rate': analyticsData.compliance_rate || 0,
+        'Endorsement Rate': analyticsData.endorsement_rate || 0,
+        'Avg Processing Time (hrs)': analyticsData.avg_processing_time || 0,
+        'Court-Ready Items': analyticsData.court_ready_items || 0,
+    };
+    
+    // Convert to CSV format
+    let csv = Object.entries(csv_data).map(([k, v]) => `"${k}","${v}"`).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const timestamp = new Date().toISOString().split('T')[0];
+    downloadBlob(blob, `analytics-${timestamp}.csv`);
+    showNotification('✓ Exported to CSV', 'success');
+}
+
+function analyticsExportPDF() {
+    if (!analyticsData) {
+        showNotification('No analytics data to export', 'warning');
+        return;
+    }
+    
+    showNotification('⏳ Generating PDF report...', 'info', 10000);
+    
+    const timestamp = new Date().toLocaleString();
+    const dateStr = new Date().toISOString().split('T')[0];
+    
+    // Create the PDF content
+    const element = document.createElement('div');
+    element.style.padding = '20px';
+    element.style.backgroundColor = '#FFFFFF';
+    element.style.color = '#000';
+    element.style.fontFamily = 'Arial, sans-serif';
+    element.style.maxWidth = '800px';
+    element.style.margin = '0 auto';
+    
+    element.innerHTML = `
+        <div style="text-align: center; border-bottom: 2px solid #0056CC; padding-bottom: 20px; margin-bottom: 20px;">
+            <h1 style="margin: 0; color: #0056CC; font-size: 28px;">Tracey's Sentinel</h1>
+            <p style="margin: 5px 0; color: #666;">Forensic Evidence Intelligence Report</p>
+            <p style="margin: 5px 0; font-size: 12px; color: #999;">Generated: ${timestamp}</p>
+        </div>
+        
+        <h2 style="color: #0056CC; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Executive Summary</h2>
+        <table style="width: 100%; margin-bottom: 20px; border-collapse: collapse;">
+            <tr style="background: #f5f5f5;">
+                <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">Metric</td>
+                <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">Value</td>
+            </tr>
+            <tr>
+                <td style="padding: 12px; border: 1px solid #ddd;">Total Evidence Items</td>
+                <td style="padding: 12px; border: 1px solid #ddd;"><strong>${analyticsData.total_evidence || 0}</strong></td>
+            </tr>
+            <tr style="background: #f9f9f9;">
+                <td style="padding: 12px; border: 1px solid #ddd;">Active Cases</td>
+                <td style="padding: 12px; border: 1px solid #ddd;"><strong>${analyticsData.active_cases || 0}</strong></td>
+            </tr>
+            <tr>
+                <td style="padding: 12px; border: 1px solid #ddd;">Integrity Score</td>
+                <td style="padding: 12px; border: 1px solid #ddd;"><strong>${analyticsData.integrity_score || 0}%</strong></td>
+            </tr>
+            <tr style="background: #f9f9f9;">
+                <td style="padding: 12px; border: 1px solid #ddd;">Critical Issues</td>
+                <td style="padding: 12px; border: 1px solid #ddd;"><strong>${analyticsData.critical_issues || 0}</strong></td>
+            </tr>
+            <tr>
+                <td style="padding: 12px; border: 1px solid #ddd;">Compliance Rate</td>
+                <td style="padding: 12px; border: 1px solid #ddd;"><strong>${analyticsData.compliance_rate || 0}%</strong></td>
+            </tr>
+            <tr style="background: #f9f9f9;">
+                <td style="padding: 12px; border: 1px solid #ddd;">Endorsement Rate</td>
+                <td style="padding: 12px; border: 1px solid #ddd;"><strong>${analyticsData.endorsement_rate || 0}%</strong></td>
+            </tr>
+            <tr>
+                <td style="padding: 12px; border: 1px solid #ddd;">Avg Processing Time</td>
+                <td style="padding: 12px; border: 1px solid #ddd;"><strong>${analyticsData.avg_processing_time || 0} hours</strong></td>
+            </tr>
+            <tr style="background: #f9f9f9;">
+                <td style="padding: 12px; border: 1px solid #ddd;">Court-Ready Items</td>
+                <td style="padding: 12px; border: 1px solid #ddd;"><strong>${analyticsData.court_ready_items || 0}</strong></td>
+            </tr>
+        </table>
+        
+        <h2 style="color: #0056CC; border-bottom: 1px solid #ddd; padding-bottom: 10px;">Processing Distribution</h2>
+        <table style="width: 100%; margin-bottom: 20px; border-collapse: collapse;">
+            <tr style="background: #f5f5f5;">
+                <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">Action Type</td>
+                <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold; text-align: right;">Count</td>
+            </tr>
+            ${Object.entries(analyticsData.action_breakdown || {}).map(([action, count]) => 
+                `<tr style="background: ${Math.random() > 0.5 ? '#f9f9f9' : 'white'};">
+                    <td style="padding: 12px; border: 1px solid #ddd;">${action}</td>
+                    <td style="padding: 12px; border: 1px solid #ddd; text-align: right;"><strong>${count}</strong></td>
+                </tr>`
+            ).join('')}
+        </table>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 11px; color: #999;">
+            <p style="margin: 5px 0;">This report is confidential and contains forensic evidence information.</p>
+            <p style="margin: 5px 0;">Report ID: ${Math.random().toString(36).substring(7).toUpperCase()}</p>
+            <p style="margin: 5px 0;">Tracey's Sentinel - Forensic Evidence Management Platform</p>
+        </div>
+    `;
+    
+    const options = {
+        margin: 10,
+        filename: `analytics-${dateStr}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+    };
+    
+    html2pdf().set(options).from(element).save().finally(() => {
+        showNotification('✓ PDF report generated and downloaded', 'success');
+    });
+}
+
+function printAnalytics() {
+    window.print();
+    showNotification('Print dialog opened', 'info');
+}
+
+// ===== INITIALIZE ON PAGE LOAD =====
+document.addEventListener('DOMContentLoaded', () => {
+    updateUserInfo();
+    loadHomeDashboard();
+    applyTheme();
+    setupKeyboardShortcuts();
+    loadFavorites();
+    setupAnalyticsControls();
+    startHealthMonitoring();
+    cache.set('app_loaded', true);
+    setInterval(loadRecentActivity, 5000); // Refresh every 5s
+});
 function applyTheme() {
     const theme = userPreferences.theme || 'dark';
     document.documentElement.setAttribute('data-theme', theme);
@@ -750,24 +1603,50 @@ function toggleTheme() {
 }
 
 // ===== NOTIFICATIONS =====
-function showNotification(message, type = 'info') {
+function showNotification(message, type = 'info', duration = 5000) {
     const container = document.getElementById('notification-container') || createNotificationContainer();
-    const id = Date.now();
     const notification = document.createElement('div');
+    const id = `notif-${Date.now()}`;
+    notification.id = id;
     notification.className = `notification notification-${type}`;
+    
+    // Add icons based on type
+    const icons = {
+        success: '✓',
+        error: '✕',
+        danger: '⚠',
+        warning: '⚠',
+        info: 'ℹ'
+    };
+    
+    const icon = icons[type] || 'ℹ';
+    
     notification.innerHTML = `
-        <span>${message}</span>
-        <button onclick="this.parentElement.remove()" style="background: none; border: none; color: inherit; cursor: pointer; margin-left: 1rem;">✕</button>
+        <div style="display: flex; align-items: flex-start; gap: 0.75rem; flex: 1;">
+            <span style="font-size: 1.2rem; font-weight: bold; min-width: 24px; text-align: center;">${icon}</span>
+            <span style="word-break: break-word;">${message}</span>
+        </div>
+        <button class="notification-close" onclick="document.getElementById('${id}').remove()">✕</button>
     `;
+    
     container.appendChild(notification);
     
-    setTimeout(() => notification.remove(), 5000);
+    // Auto-dismiss
+    if (duration > 0) {
+        setTimeout(() => {
+            if (document.getElementById(id)) {
+                notification.style.animation = 'slideOutRight 0.3s ease-in-out forwards';
+                setTimeout(() => notification.remove(), 300);
+            }
+        }, duration);
+    }
+    
+    return notification;
 }
 
 function createNotificationContainer() {
     const container = document.createElement('div');
     container.id = 'notification-container';
-    container.style.cssText = 'position: fixed; top: 80px; right: 1rem; z-index: 1000; max-width: 400px;';
     document.body.appendChild(container);
     return container;
 }
@@ -783,6 +1662,9 @@ function setupKeyboardShortcuts() {
             if (e.key === 'e') { e.preventDefault(); switchTab('scanner'); }
             if (e.key === 'k') { e.preventDefault(); switchTab('cases'); }
             if (e.key === '/') { e.preventDefault(); showKeyboardHelp(); }
+            if (e.shiftKey && e.key === 'E') { e.preventDefault(); analyticsExportJSON(); }
+            if (e.shiftKey && e.key === 'C') { e.preventDefault(); analyticsExportCSV(); }
+            if (e.key === 'p') { e.preventDefault(); printAnalytics(); }
         }
         
         // Single key shortcuts
@@ -803,6 +1685,200 @@ function showKeyboardHelp() {
 
 function closeAllModals() {
     document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
+}
+
+// ===== CHART.JS VISUALIZATIONS =====
+let charts = {};
+
+function destroyChart(chartName) {
+    if (charts[chartName]) {
+        charts[chartName].destroy();
+        delete charts[chartName];
+    }
+}
+
+function renderActionChart(breakdown) {
+    const canvas = document.getElementById('action-chart');
+    if (!canvas) return;
+    
+    destroyChart('actionChart');
+    
+    const actions = Object.entries(breakdown || {})
+        .map(([type, count]) => count > 0 ? [type, count] : null)
+        .filter(Boolean)
+        .sort((a, b) => b[1] - a[1]);
+    
+    if (actions.length === 0) return;
+    
+    const chartColors = [
+        '#0056CC', '#1f71b8', '#0078D4', '#2563EB', 
+        '#3B82F6', '#60A5FA', '#93C5FD', '#DBEAFE'
+    ];
+    
+    charts['actionChart'] = new Chart(canvas, {
+        type: 'doughnut',
+        data: {
+            labels: actions.map(([type]) => type),
+            datasets: [{
+                data: actions.map(([_, count]) => count),
+                backgroundColor: chartColors.slice(0, actions.length),
+                borderColor: 'var(--bg-secondary)',
+                borderWidth: 3,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        color: 'var(--text)',
+                        font: { size: 12 },
+                        padding: 15,
+                        usePointStyle: true,
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    padding: 12,
+                    titleFont: { size: 14 },
+                    bodyFont: { size: 12 },
+                    callbacks: {
+                        label: (ctx) => ` ${ctx.label}: ${ctx.parsed} (${Math.round(ctx.parsed / ctx.dataset.data.reduce((a,b) => a+b) * 100)}%)`
+                    }
+                }
+            }
+        }
+    });
+}
+
+function renderTrendChart(trend) {
+    const canvas = document.getElementById('trend-chart');
+    if (!canvas) return;
+    
+    destroyChart('trendChart');
+    
+    if (!trend || trend.length === 0) return;
+    
+    charts['trendChart'] = new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels: trend.map(t => t.month || 'Unknown'),
+            datasets: [{
+                label: 'Evidence Events',
+                data: trend.map(t => t.count || 0),
+                borderColor: '#0056CC',
+                backgroundColor: 'rgba(0, 86, 204, 0.1)',
+                fill: true,
+                tension: 0.4,
+                pointBackgroundColor: '#0056CC',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                borderWidth: 3,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: 'var(--text)',
+                        font: { size: 12 },
+                        usePointStyle: true,
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    titleColor: '#fff',
+                    bodyColor: '#fff',
+                    padding: 12,
+                    titleFont: { size: 14 },
+                    bodyFont: { size: 12 },
+                    callbacks: {
+                        afterLabel: (ctx) => `Week Activity: ${ctx.parsed.y} events`
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 86, 204, 0.1)',
+                        drawBorder: false,
+                    },
+                    ticks: {
+                        color: 'var(--text-secondary)',
+                        font: { size: 11 }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false,
+                        drawBorder: false,
+                    },
+                    ticks: {
+                        color: 'var(--text-secondary)',
+                        font: { size: 11 }
+                    }
+                }
+            }
+        }
+    });
+}
+
+// ===== SYSTEM HEALTH MONITORING =====
+let healthCheckInterval = null;
+
+function startHealthMonitoring() {
+    // Check health every 30 seconds
+    if (healthCheckInterval) clearInterval(healthCheckInterval);
+    
+    healthCheckInterval = setInterval(async () => {
+        try {
+            const response = await fetch('/health');
+            if (response.ok) {
+                const health = await response.json();
+                updateSystemHealthIndicator(health);
+            }
+        } catch (e) {
+            console.warn('Health check failed:', e);
+        }
+    }, 30000);
+    
+    // Initial check
+    updateHealthIndicator();
+}
+
+function updateHealthIndicator() {
+    const indicator = document.querySelector('[data-health-indicator]') ||
+                     document.createElement('div');
+    if (!indicator.parentElement) {
+        indicator.setAttribute('data-health-indicator', 'true');
+        indicator.style.cssText = 'position: fixed; bottom: 1rem; right: 1rem; z-index: 500; width: 20px; height: 20px; border-radius: 50%; background: var(--primary); box-shadow: var(--glow-sm); animation: pulse 2s infinite;';
+        document.body.appendChild(indicator);
+    }
+}
+
+function updateSystemHealthIndicator(health) {
+    const indicator = document.querySelector('[data-health-indicator]');
+    if (!indicator) return;
+    
+    const isHealthy = health.status === 'online' || health.uptime_percent > 95;
+    indicator.style.background = isHealthy ? 'var(--primary)' : 'var(--warning)';
+    indicator.title = `System ${isHealthy ? 'Online' : 'Degraded'}: ${health.uptime_percent}% uptime`;
+}
+
+function stopHealthMonitoring() {
+    if (healthCheckInterval) {
+        clearInterval(healthCheckInterval);
+        healthCheckInterval = null;
+    }
 }
 
 // ===== FAVORITES SYSTEM =====

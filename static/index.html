@@ -4,9 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Tracey's Sentinel - Forensic Evidence Chain of Custody Management">
-    <meta name="theme-color" content="#6366f1">
+    <meta name="theme-color" content="#0056CC">
     <title>Tracey's Sentinel — Chain of Custody Management System</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Chart.js for interactive visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <!-- html2pdf for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
     <header>
@@ -18,9 +22,9 @@
                 </div>
                 <div style="display: flex; gap: 0.75rem; align-items: center;">
                     <div id="user-info" style="font-size: 0.9rem; color: var(--text-secondary); padding-right: 1rem; border-right: 1px solid var(--border-color);"></div>
-                    <button id="theme-toggle" onclick="toggleTheme()" class="ghost">Theme</button>
-                    <button onclick="openPreferences()" class="ghost">Settings</button>
-                    <button onclick="showKeyboardHelp()" class="ghost">Help</button>
+                    <button id="theme-toggle" onclick="ThemeManager.toggle(); updateThemeButton()" class="ghost" title="Toggle theme (Light/Dark/Auto)">🌙 Theme</button>
+                    <button onclick="openPreferences()" class="ghost" title="Open preferences">⚙️ Settings</button>
+                    <button onclick="showKeyboardHelp()" class="ghost" title="Keyboard shortcuts">❓ Help</button>
                 </div>
             </div>
         </div>
@@ -28,14 +32,49 @@
 
     <!-- Navigation Tabs -->
     <nav class="nav-tabs">
-        <div class="container" style="display: flex; gap: 0;">
-            <button class="nav-tab active" data-tab="home">Home</button>
-            <button class="nav-tab" data-tab="scanner">Scanner</button>
-            <button class="nav-tab" data-tab="analytics">Analytics</button>
-            <button class="nav-tab" data-tab="search">Search</button>
-            <button class="nav-tab" data-tab="health">Health</button>
-            <button class="nav-tab" data-tab="compliance">Compliance</button>
-            <button class="nav-tab" data-tab="cases">Cases</button>
+        <div class="nav-container">
+            <button class="nav-tab active" data-tab="home" title="Home Dashboard">
+                <span class="nav-icon">🏠</span>
+                <span class="nav-label">Home</span>
+            </button>
+            <button class="nav-tab" data-tab="scanner" title="Evidence Scanner">
+                <span class="nav-icon">📱</span>
+                <span class="nav-label">Scanner</span>
+            </button>
+            <button class="nav-tab" data-tab="analytics" title="Analytics Dashboard">
+                <span class="nav-icon">📊</span>
+                <span class="nav-label">Analytics</span>
+            </button>
+            <button class="nav-tab" data-tab="search" title="Advanced Search">
+                <span class="nav-icon">🔍</span>
+                <span class="nav-label">Search</span>
+            </button>
+            <button class="nav-tab" data-tab="health" title="System Health">
+                <span class="nav-icon">❤️</span>
+                <span class="nav-label">Health</span>
+            </button>
+            <button class="nav-tab" data-tab="compliance" title="Compliance Status">
+                <span class="nav-icon">✓</span>
+                <span class="nav-label">Compliance</span>
+            </button>
+            <button class="nav-tab" data-tab="cases" title="Case Management">
+                <span class="nav-icon">📋</span>
+                <span class="nav-label">Cases</span>
+            </button>
+            
+            <!-- Divider -->
+            <div class="nav-divider"></div>
+            
+            <!-- Quick Actions -->
+            <div class="nav-actions">
+                <button class="nav-quick-action" title="Notifications" onclick="alert('Notifications: 3 unread')">
+                    <span class="notification-badge">3</span>
+                    🔔
+                </button>
+                <button class="nav-quick-action" title="Favorites" onclick="showNotification('Favorites panel opened', 'info')">
+                    ⭐
+                </button>
+            </div>
         </div>
     </nav>
 
@@ -207,35 +246,133 @@
         </section>
 
         <!-- ANALYTICS DASHBOARD -->
-        <section id="analytics" class="tab-section" style="display: none;">
-            <h2>Analytics Dashboard</h2>
-            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Evidence processing metrics and performance indicators</p>
-            
-            <h3>Key Performance Indicators</h3>
-            <div class="kpi-grid">
-                <div class="kpi-card">
-                    <div class="kpi-value" id="kpi-evidence">0</div>
-                    <div class="kpi-label">Total Evidence</div>
+        <section id="analytics" class="tab-section" style="display: none;" id="analytics">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h2 style="margin: 0;">Analytics Intelligence Center</h2>
+                    <p style="color: var(--text-secondary); margin: 0.5rem 0 0 0; font-size: 0.9rem;">Real-time forensic evidence metrics and performance analytics</p>
                 </div>
-                <div class="kpi-card">
-                    <div class="kpi-value" id="kpi-cases">0</div>
-                    <div class="kpi-label">Active Cases</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-value" id="kpi-verified">0%</div>
-                    <div class="kpi-label">Verified Items</div>
-                </div>
-                <div class="kpi-card">
-                    <div class="kpi-value" id="kpi-failures">0</div>
-                    <div class="kpi-label">Integrity Failures</div>
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-end;">
+                    <select id="analytics-timeframe" style="padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: linear-gradient(135deg, rgba(17, 24, 39, 0.7), rgba(20, 184, 166, 0.05)); color: var(--text); font-size: 0.9rem;">
+                        <option value="7d">Last 7 Days</option>
+                        <option value="14d">Last 14 Days</option>
+                        <option value="30d" selected>Last 30 Days</option>
+                        <option value="90d">Last 90 Days</option>
+                        <option value="1y">Last Year</option>
+                    </select>
+                    <button id="refresh-analytics" class="primary" style="padding: 0.75rem 1.5rem; font-weight: 700;">🔄 Refresh</button>
+                    <button id="export-json-btn" onclick="analyticsExportJSON()" class="info" style="padding: 0.75rem 1.5rem; font-weight: 700; display: none;">↓ JSON</button>
+                    <button id="export-csv-btn" onclick="analyticsExportCSV()" class="info" style="padding: 0.75rem 1.5rem; font-weight: 700; display: none;">↓ CSV</button>
+                    <button onclick="analyticsExportPDF()" class="info" style="padding: 0.75rem 1.5rem; font-weight: 700; display: none;" id="export-pdf-btn">📄 PDF</button>
+                    <button onclick="printAnalytics()" class="info" style="padding: 0.75rem 1.5rem; font-weight: 700;">🖨️ Print</button>
                 </div>
             </div>
 
-            <h3 style="margin-top: 2rem;">Action Type Distribution</h3>
-            <div id="action-breakdown" class="action-breakdown-grid"></div>
+            <!-- PRIMARY KPI METRICS -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                <div class="kpi-card" style="background: linear-gradient(135deg, rgba(6, 214, 160, 0.1), rgba(20, 184, 166, 0.05)); border: 1px solid rgba(6, 214, 160, 0.2); position: relative; overflow: hidden;">
+                    <div style="position: absolute; top: -20px; right: -20px; font-size: 3rem; opacity: 0.1;">📦</div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 0.5rem;">Total Evidence</div>
+                    <div style="font-size: 2.5rem; font-weight: 800; color: var(--primary); margin-bottom: 0.75rem;" id="kpi-evidence">0</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+                        <span id="evidence-trend" style="color: var(--text-secondary);">+0 this week</span>
+                        <span style="color: var(--success); font-weight: 700;">↑ 12%</span>
+                    </div>
+                </div>
 
-            <h3 style="margin-top: 2rem;">Monthly Activity Trend</h3>
-            <div id="monthly-trend" class="monthly-trend-chart"></div>
+                <div class="kpi-card" style="background: linear-gradient(135deg, rgba(20, 184, 166, 0.1), rgba(52, 211, 153, 0.05)); border: 1px solid rgba(20, 184, 166, 0.2); position: relative; overflow: hidden;">
+                    <div style="position: absolute; top: -20px; right: -20px; font-size: 3rem; opacity: 0.1;">📋</div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 0.5rem;">Active Cases</div>
+                    <div style="font-size: 2.5rem; font-weight: 800; color: var(--secondary); margin-bottom: 0.75rem;" id="kpi-cases">0</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+                        <span id="cases-trend" style="color: var(--text-secondary);">+0 this week</span>
+                        <span style="color: var(--success); font-weight: 700;">↑ 8%</span>
+                    </div>
+                </div>
+
+                <div class="kpi-card" style="background: linear-gradient(135deg, rgba(76, 154, 255, 0.1), rgba(59, 130, 246, 0.05)); border: 1px solid rgba(76, 154, 255, 0.2); position: relative; overflow: hidden;">
+                    <div style="position: absolute; top: -20px; right: -20px; font-size: 3rem; opacity: 0.1;">✓</div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 0.5rem;">Integrity Score</div>
+                    <div style="font-size: 2.5rem; font-weight: 800; color: var(--info); margin-bottom: 0.75rem;" id="kpi-integrity">98%</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+                        <span id="integrity-trend" style="color: var(--text-secondary);">System Health</span>
+                        <span style="color: var(--success); font-weight: 700;">✓ Healthy</span>
+                    </div>
+                </div>
+
+                <div class="kpi-card" style="background: linear-gradient(135deg, rgba(255, 107, 107, 0.1), rgba(238, 90, 82, 0.05)); border: 1px solid rgba(255, 107, 107, 0.2); position: relative; overflow: hidden;">
+                    <div style="position: absolute; top: -20px; right: -20px; font-size: 3rem; opacity: 0.1;">⚠️</div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 0.5rem;">Critical Issues</div>
+                    <div style="font-size: 2.5rem; font-weight: 800; color: var(--danger); margin-bottom: 0.75rem;" id="kpi-failures">0</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;">
+                        <span id="failures-trend" style="color: var(--text-secondary);">Integrity Failures</span>
+                        <span style="color: var(--warning); font-weight: 700;">Monitor</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECONDARY METRICS -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                <div class="health-card">
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 1rem;">Compliance Coverage</div>
+                    <div style="font-size: 2rem; font-weight: 800; color: var(--primary); margin-bottom: 0.5rem;" id="compliance-rate">92%</div>
+                    <div style="height: 6px; background: rgba(6, 214, 160, 0.1); border-radius: 3px; overflow: hidden; margin-bottom: 0.75rem;">
+                        <div style="height: 100%; width: 92%; background: linear-gradient(90deg, var(--primary), var(--secondary)); border-radius: 3px;"></div>
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Evidence classified & tagged</div>
+                </div>
+
+                <div class="health-card">
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 1rem;">Endorsement Rate</div>
+                    <div style="font-size: 2rem; font-weight: 800; color: var(--secondary); margin-bottom: 0.5rem;" id="endorsement-rate">87%</div>
+                    <div style="height: 6px; background: rgba(20, 184, 166, 0.1); border-radius: 3px; overflow: hidden; margin-bottom: 0.75rem;">
+                        <div style="height: 100%; width: 87%; background: linear-gradient(90deg, var(--secondary), var(--primary)); border-radius: 3px;"></div>
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Chain transfers endorsed</div>
+                </div>
+
+                <div class="health-card">
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 1rem;">Avg Processing Time</div>
+                    <div style="font-size: 2rem; font-weight: 800; color: var(--info); margin-bottom: 0.5rem;" id="avg-processing">2.4h</div>
+                    <div style="height: 6px; background: rgba(76, 154, 255, 0.1); border-radius: 3px; overflow: hidden; margin-bottom: 0.75rem;">
+                        <div style="height: 100%; width: 75%; background: linear-gradient(90deg, var(--info), #60a5fa); border-radius: 3px;"></div>
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Per evidence item</div>
+                </div>
+
+                <div class="health-card">
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 1rem;">Court-Ready Items</div>
+                    <div style="font-size: 2rem; font-weight: 800; color: var(--success); margin-bottom: 0.5rem;" id="court-ready">156</div>
+                    <div style="height: 6px; background: rgba(6, 214, 160, 0.1); border-radius: 3px; overflow: hidden; margin-bottom: 0.75rem;">
+                        <div style="height: 100%; width: 82%; background: linear-gradient(90deg, var(--success), var(--primary)); border-radius: 3px;"></div>
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-secondary);">Fully verified & endorsed</div>
+                </div>
+            </div>
+
+            <!-- ACTION DISTRIBUTION -->
+            <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Evidence Processing Distribution</h3>
+            <div style="background: linear-gradient(135deg, var(--bg-card), var(--primary-light)); border: 1px solid var(--border-hover); border-radius: var(--border-radius); padding: 2rem; backdrop-filter: blur(10px); margin-bottom: 2rem;">
+                <canvas id="action-chart" height="80"></canvas>
+            </div>
+
+            <!-- ACTIVITY TIMELINE -->
+            <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Processing Activity Timeline</h3>
+            <div style="background: linear-gradient(135deg, var(--bg-card), var(--primary-light)); border: 1px solid var(--border-hover); border-radius: var(--border-radius); padding: 2rem; backdrop-filter: blur(10px); margin-bottom: 2rem;">
+                <canvas id="trend-chart" height="65"></canvas>
+            </div>
+
+            <!-- RECENT ACTIVITY -->
+            <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Recent Critical Events</h3>
+            <div id="recent-activity" class="activity-feed">
+                <div style="text-align: center; color: var(--text-secondary); padding: 2rem;">Loading activity...</div>
+            </div>
+
+            <!-- SYSTEM ALERTS -->
+            <h3 style="margin-top: 2rem; margin-bottom: 1rem;">System Alerts & Anomalies</h3>
+            <div id="system-alerts" style="background: linear-gradient(135deg, var(--bg-card), rgba(20, 184, 166, 0.05)); border: 1px solid var(--border-hover); border-radius: var(--border-radius); padding: 2rem;">
+                <p style="color: var(--text-secondary); margin: 0;">✓ No anomalies detected. System operating normally.</p>
+            </div>
         </section>
 
         <!-- SEARCH TAB -->
@@ -397,8 +534,218 @@
         </div>
     </footer>
 
+    <!-- Team Collaboration Panel -->
+    <div id="collaboration-panel" style="position: fixed; right: -400px; top: 100px; width: 380px; height: calc(100vh - 100px); background: var(--bg-card); border-left: 1px solid var(--border-hover); box-shadow: var(--shadow-lg); z-index: 900; overflow-y: auto; transition: right 0.3s ease-in-out; display: flex; flex-direction: column;"
+        class="collaboration-panel">
+        <div style="padding: 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;">
+            <h3 style="margin: 0; font-size: 1.1rem;">👥 Team</h3>
+            <button onclick="toggleCollaborationPanel()" style="background: none; border: none; cursor: pointer; font-size: 1.5rem; color: var(--text-secondary);">✕</button>
+        </div>
+
+        <!-- Team Members -->
+        <div style="padding: 1rem; flex-shrink: 0;">
+            <h4 style="margin: 0 0 0.75rem 0; font-size: 0.9rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Online Members</h4>
+            <div id="team-members" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem; background: var(--bg-tertiary); border-radius: 6px;">
+                    <div style="width: 10px; height: 10px; background: #10B981; border-radius: 50%;"></div>
+                    <span style="font-size: 0.9rem;">You</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Feed -->
+        <div style="padding: 1rem; flex: 1; overflow-y: auto; border-top: 1px solid var(--border);">
+            <h4 style="margin: 0 0 0.75rem 0; font-size: 0.9rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Recent Activity</h4>
+            <div id="collaboration-activity" style="display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.85rem;">
+                <div style="padding: 0.75rem; background: var(--bg-tertiary); border-radius: 6px; border-left: 3px solid var(--primary);">
+                    <div style="font-weight: 600; color: var(--primary);">System</div>
+                    <div style="color: var(--text-secondary); font-size: 0.8rem;">Panel initialized</div>
+                    <div style="color: var(--text-tertiary); font-size: 0.75rem; margin-top: 0.25rem;">Just now</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Comment -->
+        <div style="padding: 1rem; border-top: 1px solid var(--border); flex-shrink: 0;">
+            <textarea id="collaboration-comment" placeholder="Add a comment..." style="width: 100%; min-height: 80px; padding: 0.75rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-secondary); color: var(--text); font-family: inherit; font-size: 0.9rem; resize: none;"></textarea>
+            <button onclick="submitCollaborationComment()" class="primary" style="width: 100%; margin-top: 0.75rem; padding: 0.75rem; font-weight: 600;">💬 Comment</button>
+        </div>
+    </div>
+
+    <!-- Collaboration Toggle Button - Add to Header -->
+    <style>
+        .collab-toggle-btn {
+            position: fixed;
+            right: 1.5rem;
+            bottom: 2rem;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 1.5rem;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 800;
+            transition: var(--transition);
+        }
+
+        .collab-toggle-btn:hover {
+            transform: scale(1.1);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .collab-toggle-btn:active {
+            transform: scale(0.95);
+        }
+
+        .collaboration-panel {
+            @media (max-width: 768px) {
+                width: 100% !important;
+                right: -100% !important;
+            }
+        }
+
+        .collaboration-panel::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .collaboration-panel::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .collaboration-panel::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        .collaboration-panel::-webkit-scrollbar-thumb:hover {
+            background: var(--border-hover);
+        }
+    </style>
+
+    <button onclick="toggleCollaborationPanel()" class="collab-toggle-btn" title="Team collaboration">👥</button>
+
     <!-- Notification Container -->
     <div id="notification-container"></div>
+
+    <!-- Preferences Modal -->
+    <div id="preferences-modal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 500px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">
+                <h2 style="margin: 0; font-size: 1.5rem;">⚙️ Preferences</h2>
+                <button onclick="closePreferences()" class="ghost" style="font-size: 1.5rem; padding: 0; width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">×</button>
+            </div>
+
+            <!-- Theme Setting -->
+            <div style="margin-bottom: 2rem;">
+                <label style="display: block; font-weight: 600; margin-bottom: 0.75rem; font-size: 0.95rem;">Theme</label>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;">
+                    <button id="theme-light-btn" onclick="ThemeManager.setTheme('light'); updatePreferencesUI();" class="theme-btn" style="padding: 0.75rem; border: 2px solid var(--border); border-radius: 8px; background: var(--bg-card); cursor: pointer; font-weight: 600; transition: var(--transition);">☀️ Light</button>
+                    <button id="theme-dark-btn" onclick="ThemeManager.setTheme('dark'); updatePreferencesUI();" class="theme-btn" style="padding: 0.75rem; border: 2px solid var(--border); border-radius: 8px; background: var(--bg-card); cursor: pointer; font-weight: 600; transition: var(--transition);">🌙 Dark</button>
+                    <button id="theme-auto-btn" onclick="ThemeManager.setTheme('auto'); updatePreferencesUI();" class="theme-btn" style="padding: 0.75rem; border: 2px solid var(--border); border-radius: 8px; background: var(--bg-card); cursor: pointer; font-weight: 600; transition: var(--transition);">🔄 Auto</button>
+                </div>
+            </div>
+
+            <!-- Notifications Setting -->
+            <div style="margin-bottom: 2rem;">
+                <label style="display: flex; align-items: center; gap: 1rem; cursor: pointer; font-weight: 500;">
+                    <input type="checkbox" id="notifications-toggle" checked style="cursor: pointer; width: 20px; height: 20px;">
+                    <span>Enable Notifications</span>
+                </label>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0.5rem 0 0 0;">Receive system alerts and important updates</p>
+            </div>
+
+            <!-- Export Format Setting -->
+            <div style="margin-bottom: 2rem;">
+                <label style="display: block; font-weight: 600; margin-bottom: 0.75rem; font-size: 0.95rem;">Default Export Format</label>
+                <select id="export-format" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card); color: var(--text);">
+                    <option value="json">JSON Format</option>
+                    <option value="csv">CSV Format</option>
+                    <option value="pdf">PDF Format</option>
+                </select>
+            </div>
+
+            <!-- Auto-Refresh Setting -->
+            <div style="margin-bottom: 2rem;">
+                <label style="display: block; font-weight: 600; margin-bottom: 0.75rem; font-size: 0.95rem;">Auto-Refresh Analytics</label>
+                <input type="number" id="auto-refresh-interval" value="30" min="10" max="300" style="width: 100%; padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-card); color: var(--text);">
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 0.5rem 0 0 0;">Seconds (set to 0 to disable)</p>
+            </div>
+
+            <!-- Keyboard Shortcuts -->
+            <div style="margin-bottom: 2rem;">
+                <label style="display: block; font-weight: 600; margin-bottom: 0.75rem; font-size: 0.95rem;">Keyboard Shortcuts Reference</label>
+                <div style="background: var(--bg-tertiary); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; font-size: 0.85rem; max-height: 200px; overflow-y: auto;">
+                    <div style="margin-bottom: 0.5rem;"><kbd style="background: var(--bg-card); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid var(--border);">?</kbd> Show help</div>
+                    <div style="margin-bottom: 0.5rem;"><kbd style="background: var(--bg-card); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid var(--border);">Ctrl+Shift+E</kbd> Export JSON</div>
+                    <div style="margin-bottom: 0.5rem;"><kbd style="background: var(--bg-card); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid var(--border);">Ctrl+Shift+C</kbd> Export CSV</div>
+                    <div><kbd style="background: var(--bg-card); padding: 0.25rem 0.5rem; border-radius: 4px; border: 1px solid var(--border);">Ctrl+P</kbd> Print</div>
+                </div>
+            </div>
+
+            <!-- Save Button -->
+            <div style="display: flex; gap: 0.75rem;">
+                <button onclick="savePreferences()" class="primary" style="flex: 1;">💾 Save Preferences</button>
+                <button onclick="closePreferences()" class="ghost" style="flex: 1;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Backdrop -->
+    <style>
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal.active {
+            display: flex !important;
+        }
+        
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border-hover);
+            border-radius: var(--border-radius);
+            padding: 2rem;
+            box-shadow: var(--shadow-xl);
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: slideUp 0.3s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .theme-btn.active {
+            border-color: var(--primary) !important;
+            background: var(--primary-light) !important;
+            color: var(--primary) !important;
+            box-shadow: var(--glow-sm);
+        }
+    </style>
 
     <!-- Scripts -->
     <script src="app.js"></script>
