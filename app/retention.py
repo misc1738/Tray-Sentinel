@@ -54,57 +54,79 @@ class RetentionManager:
     def init_tables(self):
         """Initialize retention management tables."""
         with sqlite3.connect(self.db_path) as conn:
-            # Retention policies
-            conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS retention_policies (
-                    policy_id TEXT PRIMARY KEY,
-                    policy_name TEXT NOT NULL UNIQUE,
-                    case_type TEXT,
-                    retention_years INTEGER NOT NULL,
-                    action TEXT NOT NULL,
-                    description TEXT,
-                    active BOOLEAN DEFAULT 1,
-                    created_at TEXT NOT NULL
+            try:
+                # Retention policies
+                conn.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS retention_policies (
+                        policy_id TEXT PRIMARY KEY,
+                        policy_name TEXT NOT NULL UNIQUE,
+                        case_type TEXT,
+                        retention_years INTEGER NOT NULL,
+                        action TEXT NOT NULL,
+                        description TEXT,
+                        active BOOLEAN DEFAULT 1,
+                        created_at TEXT NOT NULL
+                    )
+                    """
                 )
-                """
-            )
-            conn.execute(
-                """
-                CREATE INDEX IF NOT EXISTS idx_retention_active ON retention_policies(active);
-                """
-            )
+            except sqlite3.OperationalError:
+                # Table may already exist with different structure, try to add missing columns
+                try:
+                    conn.execute("ALTER TABLE retention_policies ADD COLUMN active BOOLEAN DEFAULT 1")
+                except:
+                    pass
+            
+            try:
+                conn.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_retention_active ON retention_policies(active);
+                    """
+                )
+            except:
+                pass
 
-            # Retention schedules
-            conn.execute(
-                """
-                CREATE TABLE IF NOT EXISTS retention_schedules (
-                    schedule_id TEXT PRIMARY KEY,
-                    evidence_id TEXT NOT NULL,
-                    policy_id TEXT NOT NULL,
-                    case_id TEXT,
-                    retention_deadline TEXT NOT NULL,
-                    action_to_take TEXT NOT NULL,
-                    status TEXT DEFAULT 'PENDING',
-                    scheduled_by TEXT,
-                    executed_at TEXT,
-                    execution_details TEXT,
-                    created_at TEXT NOT NULL,
-                    FOREIGN KEY(policy_id) REFERENCES retention_policies(policy_id),
-                    FOREIGN KEY(evidence_id) REFERENCES evidence(evidence_id)
+            try:
+                # Retention schedules
+                conn.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS retention_schedules (
+                        schedule_id TEXT PRIMARY KEY,
+                        evidence_id TEXT NOT NULL,
+                        policy_id TEXT NOT NULL,
+                        case_id TEXT,
+                        retention_deadline TEXT NOT NULL,
+                        action_to_take TEXT NOT NULL,
+                        status TEXT DEFAULT 'PENDING',
+                        scheduled_by TEXT,
+                        executed_at TEXT,
+                        execution_details TEXT,
+                        created_at TEXT NOT NULL,
+                        FOREIGN KEY(policy_id) REFERENCES retention_policies(policy_id),
+                        FOREIGN KEY(evidence_id) REFERENCES evidence(evidence_id)
+                    )
+                    """
                 )
-                """
-            )
-            conn.execute(
-                """
-                CREATE INDEX IF NOT EXISTS idx_schedule_status ON retention_schedules(status);
-                """
-            )
-            conn.execute(
-                """
-                CREATE INDEX IF NOT EXISTS idx_schedule_deadline ON retention_schedules(retention_deadline);
-                """
-            )
+            except:
+                pass
+            
+            try:
+                conn.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_schedule_status ON retention_schedules(status);
+                    """
+                )
+            except:
+                pass
+            
+            try:
+                conn.execute(
+                    """
+                    CREATE INDEX IF NOT EXISTS idx_schedule_deadline ON retention_schedules(retention_deadline);
+                    """
+                )
+            except:
+                pass
 
             # Legal holds
             conn.execute(

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from typing import Any, Literal, Optional
+import re
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, StringConstraints
+from typing_extensions import Annotated
 
 
 ActionType = Literal[
@@ -17,12 +19,26 @@ ActionType = Literal[
 
 
 class EvidenceIntakeRequest(BaseModel):
-    case_id: str = Field(min_length=1)
-    description: str = Field(min_length=1)
-    source_device: Optional[str] = None
-    acquisition_method: str = Field(min_length=1)
-    file_name: str = Field(min_length=1)
-    file_bytes_b64: str = Field(min_length=1)
+    case_id: Annotated[str, Field(min_length=1, max_length=255, description="Case ID")]
+    description: Annotated[str, Field(min_length=1, max_length=1000, description="Evidence description")]
+    source_device: Annotated[Optional[str], Field(max_length=255)] = None
+    acquisition_method: Annotated[str, Field(min_length=1, max_length=255, description="How evidence was acquired")]
+    file_name: Annotated[str, Field(min_length=1, max_length=255, description="Original file name")]
+    file_bytes_b64: Annotated[str, Field(min_length=1, description="Base64-encoded file bytes")]
+    
+    @field_validator('case_id')
+    @classmethod
+    def case_id_valid(cls, v):
+        if not re.match(r'^[a-zA-Z0-9_\-]+$', v):
+            raise ValueError('case_id must contain only alphanumeric characters, hyphens, and underscores')
+        return v
+    
+    @field_validator('file_name')
+    @classmethod
+    def file_name_valid(cls, v):
+        if '..' in v or v.startswith('/'):
+            raise ValueError('file_name contains invalid path elements')
+        return v
 
 
 class EvidenceResponse(BaseModel):
@@ -35,11 +51,20 @@ class EvidenceResponse(BaseModel):
 
 
 class CustodyEventRequest(BaseModel):
-    evidence_id: str = Field(min_length=1)
+    evidence_id: Annotated[str, Field(min_length=1, max_length=255, description="Evidence ID")]
     action_type: ActionType
-    details: dict[str, Any] = Field(default_factory=dict)
-    presented_sha256: Optional[str] = None
+    details: dict[str, Any] = Field(default_factory=dict, max_items=100)
+    presented_sha256: Annotated[Optional[str], Field(pattern=r'^[a-h0-9]{64}$')] = None
     endorse: bool = False
+    
+    @field_validator('details')
+    @classmethod
+    def details_valid(cls, v):
+        # Ensure details don't contain nested objects that are too deep
+        for key, value in v.items():
+            if not isinstance(key, str) or len(key) > 255:
+                raise ValueError('Details keys must be strings with max length 255')
+        return v
 
 
 class CustodyEventResponse(BaseModel):
@@ -83,8 +108,15 @@ class ReportResponse(BaseModel):
 
 
 class EndorseRequest(BaseModel):
-    evidence_id: str = Field(min_length=1)
-    tx_id: str = Field(min_length=1)
+    evidence_id: Annotated[str, Field(min_length=1, max_length=255, description="Evidence ID")]
+    tx_id: Annotated[str, Field(min_length=1, max_length=255, description="Transaction ID to endorse")]
+    
+    @field_validator('evidence_id', 'tx_id')
+    @classmethod
+    def ids_valid(cls, v):
+        if '..' in v:
+            raise ValueError('ID contains invalid characters')
+        return v
 
 
 class EndorseResponse(BaseModel):

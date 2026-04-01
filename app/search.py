@@ -177,9 +177,19 @@ class SearchEngine:
             cursor = conn.execute(count_query, params)
             total_count = cursor.fetchone()[0]
 
-            # Add sorting and pagination
-            query += f" ORDER BY si.{search_query.sort_by} {search_query.sort_order.upper()}"
-            query += f" LIMIT {search_query.limit} OFFSET {search_query.offset}"
+            # Add sorting and pagination (with validation to prevent SQL injection)
+            # Whitelist allowed sort columns
+            allowed_sort_fields = {"created_at", "updated_at", "resource_type", "resource_id", "case_id"}
+            sort_field = search_query.sort_by if search_query.sort_by in allowed_sort_fields else "created_at"
+            sort_dir = "DESC" if search_query.sort_order.upper() == "DESC" else "ASC"
+            
+            # Validate pagination limits to prevent SQL injection
+            limit = max(1, min(int(search_query.limit or 50), 500))  # Clamp between 1-500
+            offset = max(0, int(search_query.offset or 0))  # Ensure non-negative
+            
+            query += f" ORDER BY si.{sort_field} {sort_dir}"
+            query += f" LIMIT ? OFFSET ?"  # Use parameterized queries
+            params.extend([limit, offset])
 
             cursor = conn.execute(query, params)
             rows = cursor.fetchall()

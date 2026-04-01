@@ -23,30 +23,47 @@ class EvidenceEncryptionStatus:
 class EvidenceCipher:
     def __init__(self, *, key_path: Path):
         self.key_path = key_path
-        self.key_path.parent.mkdir(parents=True, exist_ok=True)
-        key = self._load_or_create_key()
-        self._fernet = Fernet(key)
-        self._key_fingerprint = sha256_bytes(base64.urlsafe_b64decode(key))
+        try:
+            self.key_path.parent.mkdir(parents=True, exist_ok=True)
+            key = self._load_or_create_key()
+            self._fernet = Fernet(key)
+            self._key_fingerprint = sha256_bytes(base64.urlsafe_b64decode(key))
+        except (OSError, ValueError) as e:
+            raise RuntimeError(f"Failed to initialize encryption: {e}")
 
     def _load_or_create_key(self) -> bytes:
-        if self.key_path.exists():
-            return self.key_path.read_bytes().strip()
-        key = Fernet.generate_key()
-        self.key_path.write_bytes(key)
-        return key
+        try:
+            if self.key_path.exists():
+                key = self.key_path.read_bytes().strip()
+                # Validate key format
+                if len(key) < 44:  # Fernet keys are 44 chars minimum
+                    raise ValueError("Invalid encryption key format")
+                return key
+            # Create new key
+            key = Fernet.generate_key()
+            self.key_path.write_bytes(key)
+            self.key_path.chmod(0o600)  # Restrict permissions to owner only
+            return key
+        except (OSError, ValueError) as e:
+            raise RuntimeError(f"Failed to load/create encryption key: {e}")
 
     def encrypt_for_storage(self, plaintext: bytes) -> bytes:
-        return _ENC_PREFIX + self._fernet.encrypt(plaintext)
+        try:
+            return _ENC_PREFIX + self._fernet.encrypt(plaintext)
+        except Exception as e:
+            raise RuntimeError(f"Failed to encrypt evidence: {e}")
 
     def decrypt_from_storage(self, ciphertext_or_plaintext: bytes) -> bytes:
-        if not ciphertext_or_plaintext.startswith(_ENC_PREFIX):
-            # Backward compatibility with legacy plaintext evidence files.
-            return ciphertext_or_plaintext
-        token = ciphertext_or_plaintext[len(_ENC_PREFIX) :]
         try:
+            if not ciphertext_or_plaintext.startswith(_ENC_PREFIX):
+                # Backward compatibility with legacy plaintext evidence files.
+                return ciphertext_or_plaintext
+            token = ciphertext_or_plaintext[len(_ENC_PREFIX) :]
             return self._fernet.decrypt(token)
         except InvalidToken as exc:
-            raise ValueError("unable to decrypt evidence payload") from exc
+            raise ValueError("Unable to decrypt evidence payload - key may be wrong") from exc
+        except Exception as e:
+            raise RuntimeError(f"Decryption error: {e}") from e
 
     def status(self) -> EvidenceEncryptionStatus:
         return EvidenceEncryptionStatus(

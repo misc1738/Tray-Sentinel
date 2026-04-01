@@ -12,16 +12,26 @@ from pydantic import BaseModel
 
 
 class AuditEventType(str, Enum):
-    """Types of auditableevents."""
+    """Types of auditable events."""
+    # Authentication & Access Control
+    AUTHENTICATION_SUCCESS = "AUTHENTICATION_SUCCESS"
+    AUTHENTICATION_FAILED = "AUTHENTICATION_FAILED"
+    AUTHORIZATION_SUCCESS = "AUTHORIZATION_SUCCESS"
+    AUTHORIZATION_FAILED = "AUTHORIZATION_FAILED"
+    
+    # Evidence & Custody
     EVIDENCE_INTAKE = "EVIDENCE_INTAKE"
     CUSTODY_ACTION = "CUSTODY_ACTION"
     ENDORSEMENT = "ENDORSEMENT"
     VERIFICATION = "VERIFICATION"
+    
+    # Reporting & System
     REPORT_GENERATION = "REPORT_GENERATION"
     ACCESS_CONTROL = "ACCESS_CONTROL"
     SYSTEM_CONFIG = "SYSTEM_CONFIG"
     COMPLIANCE_ASSESSMENT = "COMPLIANCE_ASSESSMENT"
     SECURITY_INCIDENT = "SECURITY_INCIDENT"
+    DATA_EXPORT = "DATA_EXPORT"
 
 
 class AuditLogEntry(BaseModel):
@@ -309,4 +319,49 @@ class AuditLogger:
             "start_time": start_time.isoformat(),
             "event_summary": event_summary,
             "org_activity": org_activity,
+        }
+
+    def cleanup_old_logs(self, retention_days: int = 365) -> int:
+        """
+        Delete audit logs older than retention_days.
+        Returns the number of rows deleted.
+        
+        WARNING: This permanently deletes audit data. Ensure you have backups.
+        """
+        cutoff_date = datetime.now(tz=timezone.utc) - timedelta(days=retention_days)
+        
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                "DELETE FROM audit_logs WHERE timestamp < ?",
+                (cutoff_date.isoformat(),),
+            )
+            deleted_count = cursor.rowcount
+            conn.commit()
+        
+        return deleted_count
+
+    def get_log_count(self) -> dict:
+        """Get statistics about audit logs."""
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute("SELECT COUNT(*) as total FROM audit_logs")
+            total_count = cursor.fetchone()[0]
+            
+            cursor = conn.execute("""
+                SELECT event_type, COUNT(*) as count
+                FROM audit_logs
+                GROUP BY event_type
+            """)
+            by_type = {row[0]: row[1] for row in cursor.fetchall()}
+            
+            cursor = conn.execute("""
+                SELECT status, COUNT(*) as count
+                FROM audit_logs
+                GROUP BY status
+            """)
+            by_status = {row[0]: row[1] for row in cursor.fetchall()}
+        
+        return {
+            "total_logs": total_count,
+            "by_event_type": by_type,
+            "by_status": by_status,
         }

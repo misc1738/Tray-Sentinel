@@ -119,23 +119,29 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if request.url.path in self.exempt_paths:
             return await call_next(request)
 
-        # Skip rate limiting for GET requests to keep API accessible
-        if request.method == "GET":
-            return await call_next(request)
+        # NOTE: Rate limiting now applies to ALL methods including GET
+        # to prevent DDoS attacks on expensive read operations like /search
 
         # Get client IP
         client_ip = request.client.host if request.client else "unknown"
         
-        # Check rate limit (100 requests per minute per IP)
-        limit_key = f"ip:{client_ip}"
-        if not self.store.check_limit(limit_key, max_requests=100, window_seconds=60):
+        # Determine rate limit based on request type
+        # POST/PUT/DELETE are more restrictive than GET
+        if request.method in ["POST", "PUT", "DELETE", "PATCH"]:
+            max_requests = 100  # 100 write requests per minute
+        else:
+            max_requests = 200  # 200 read requests per minute (still limited)
+        
+        # Check rate limit per IP
+        limit_key = f"ip:{client_ip}:{request.method}"
+        if not self.store.check_limit(limit_key, max_requests=max_requests, window_seconds=60):
             raise HTTPException(
                 status_code=429,
-                detail="Rate limit exceeded. Max 100 requests per minute.",
+                detail=f"Rate limit exceeded. Max {max_requests} {request.method} requests per minute.",
             )
 
         response = await call_next(request)
-        response.headers["X-RateLimit-Limit"] = "100"
+        response.headers["X-RateLimit-Limit"] = str(max_requests)
         response.headers["X-RateLimit-Window"] = "60"
         
         return response

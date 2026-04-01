@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import io
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from fpdf import FPDF

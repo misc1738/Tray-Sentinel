@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import uuid
+import threading
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
@@ -40,6 +41,12 @@ class Ledger:
         self.ledger_path.parent.mkdir(parents=True, exist_ok=True)
         if not self.ledger_path.exists():
             self.ledger_path.write_text("", encoding="utf-8")
+        
+        # Thread-safety lock for concurrent access.
+        # WARNING: For multi-process/distributed deployments, use database-backed ledger.
+        self._write_lock = threading.RLock()
+        self._read_cache = None
+        self._read_cache_lock = threading.Lock()
 
     def _signing_payload(self, row_without_hash: dict[str, Any]) -> bytes:
         # Signature is over canonical JSON excluding record_hash and signature fields.
@@ -50,14 +57,21 @@ class Ledger:
         return json.dumps(copy, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
     def _iter_rows(self):
+        """Iterate over ledger rows with error handling."""
         if not self.ledger_path.exists():
             return
-        with self.ledger_path.open("r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                yield json.loads(line)
+        try:
+            with self.ledger_path.open("r", encoding="utf-8") as f:
+                for line_no, line in enumerate(f, 1):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        yield json.loads(line)
+                    except json.JSONDecodeError as e:
+                        raise ValueError(f"Corrupted ledger entry at line {line_no}: {e}")
+        except IOError as e:
+            raise RuntimeError(f"Failed to read ledger file: {e}")
 
     def last_hash(self) -> str:
         last = "GENESIS"
@@ -115,85 +129,87 @@ class Ledger:
         details: dict[str, Any],
         endorse: bool,
     ) -> LedgerEvent:
-        tx_id = str(uuid.uuid4())
-        prev_hash = self.last_hash()
-        timestamp = utcnow_iso()
+        with self._write_lock:
+            tx_id = str(uuid.uuid4())
+            prev_hash = self.last_hash()
+            timestamp = utcnow_iso()
 
-        required_orgs = required_endorser_org_count(action_type)
-        endorsements: list[dict[str, str]] = []
-        if endorse:
-            endorsements.append({"org_id": principal.org_id, "user_id": principal.user_id})
+            required_orgs = required_endorser_org_count(action_type)
+            endorsements: list[dict[str, str]] = []
+            if endorse:
+                endorsements.append({"org_id": principal.org_id, "user_id": principal.user_id})
 
-        # Status reflects whether this event is fully endorsed.
-        endorsement_status = "FINAL" if len({e['org_id'] for e in endorsements}) >= required_orgs else "PENDING_ENDORSEMENT"
+            # Status reflects whether this event is fully endorsed.
+            endorsement_status = "FINAL" if len({e['org_id'] for e in endorsements}) >= required_orgs else "PENDING_ENDORSEMENT"
 
-        canonical = {
-            "tx_id": tx_id,
-            "evidence_id": evidence_id,
-            "action_type": action_type,
-            "required_endorser_orgs": required_orgs,
-            "actor_user_id": principal.user_id,
-            "actor_role": principal.role.value,
-            "actor_org_id": principal.org_id,
-            "timestamp": timestamp,
-            "presented_sha256": presented_sha256,
-            "expected_sha256": expected_sha256,
-            "integrity_ok": integrity_ok,
-            "prev_hash": prev_hash,
-            "endorsement_status": endorsement_status,
-            "endorsements": endorsements,
-            "details": details,
-        }
+            canonical = {
+                "tx_id": tx_id,
+                "evidence_id": evidence_id,
+                "action_type": action_type,
+                "required_endorser_orgs": required_orgs,
+                "actor_user_id": principal.user_id,
+                "actor_role": principal.role.value,
+                "actor_org_id": principal.org_id,
+                "timestamp": timestamp,
+                "presented_sha256": presented_sha256,
+                "expected_sha256": expected_sha256,
+                "integrity_ok": integrity_ok,
+                "prev_hash": prev_hash,
+                "endorsement_status": endorsement_status,
+                "endorsements": endorsements,
+                "details": details,
+            }
 
-        if not self.base_dir:
-            raise ValueError("Ledger requires base_dir for signing")
-        km = get_or_create_user_keys(base_dir=self.base_dir, user_id=principal.user_id)
-        canonical["signer_pubkey_b64"] = pubkey_b64(km.public_key)
-        canonical["signature_b64"] = sign_b64(km.private_key, self._signing_payload(canonical))
+            if not self.base_dir:
+                raise ValueError("Ledger requires base_dir for signing")
+            km = get_or_create_user_keys(base_dir=self.base_dir, user_id=principal.user_id)
+            canonical["signer_pubkey_b64"] = pubkey_b64(km.public_key)
+            canonical["signature_b64"] = sign_b64(km.private_key, self._signing_payload(canonical))
 
-        record_hash = sha256_bytes(json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode("utf-8"))
-        canonical["record_hash"] = record_hash
+            record_hash = sha256_bytes(json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode("utf-8"))
+            canonical["record_hash"] = record_hash
 
-        with self.ledger_path.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(canonical, sort_keys=True) + "\n")
+            with self.ledger_path.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(canonical, sort_keys=True) + "\n")
 
-        return LedgerEvent(**canonical)
+            return LedgerEvent(**canonical)
 
     def endorse_event(self, tx_id: str, evidence_id: str, principal: Principal) -> LedgerEvent:
-        # JSONL is append-only; endorsement is written as a new ENDORSE event that references tx_id.
-        if principal.org_id in self.endorser_orgs_for_tx(tx_id):
-            raise ValueError("duplicate endorsement from org")
-        prev_hash = self.last_hash()
-        timestamp = utcnow_iso()
-        canonical = {
-            "tx_id": str(uuid.uuid4()),
-            "evidence_id": evidence_id,
-            "action_type": "ENDORSE",
-            "required_endorser_orgs": 1,
-            "actor_user_id": principal.user_id,
-            "actor_role": principal.role.value,
-            "actor_org_id": principal.org_id,
-            "timestamp": timestamp,
-            "presented_sha256": None,
-            "expected_sha256": "",
-            "integrity_ok": True,
-            "prev_hash": prev_hash,
-            "endorsement_status": "FINAL",
-            "endorsements": [{"org_id": principal.org_id, "user_id": principal.user_id}],
-            "details": {"endorsed_tx_id": tx_id},
-        }
+        with self._write_lock:
+            # JSONL is append-only; endorsement is written as a new ENDORSE event that references tx_id.
+            if principal.org_id in self.endorser_orgs_for_tx(tx_id):
+                raise ValueError("duplicate endorsement from org")
+            prev_hash = self.last_hash()
+            timestamp = utcnow_iso()
+            canonical = {
+                "tx_id": str(uuid.uuid4()),
+                "evidence_id": evidence_id,
+                "action_type": "ENDORSE",
+                "required_endorser_orgs": 1,
+                "actor_user_id": principal.user_id,
+                "actor_role": principal.role.value,
+                "actor_org_id": principal.org_id,
+                "timestamp": timestamp,
+                "presented_sha256": None,
+                "expected_sha256": "",
+                "integrity_ok": True,
+                "prev_hash": prev_hash,
+                "endorsement_status": "FINAL",
+                "endorsements": [{"org_id": principal.org_id, "user_id": principal.user_id}],
+                "details": {"endorsed_tx_id": tx_id},
+            }
 
-        if not self.base_dir:
-            raise ValueError("Ledger requires base_dir for signing")
-        km = get_or_create_user_keys(base_dir=self.base_dir, user_id=principal.user_id)
-        canonical["signer_pubkey_b64"] = pubkey_b64(km.public_key)
-        canonical["signature_b64"] = sign_b64(km.private_key, self._signing_payload(canonical))
+            if not self.base_dir:
+                raise ValueError("Ledger requires base_dir for signing")
+            km = get_or_create_user_keys(base_dir=self.base_dir, user_id=principal.user_id)
+            canonical["signer_pubkey_b64"] = pubkey_b64(km.public_key)
+            canonical["signature_b64"] = sign_b64(km.private_key, self._signing_payload(canonical))
 
-        record_hash = sha256_bytes(json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode("utf-8"))
-        canonical["record_hash"] = record_hash
-        with self.ledger_path.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(canonical, sort_keys=True) + "\n")
-        return LedgerEvent(**canonical)
+            record_hash = sha256_bytes(json.dumps(canonical, sort_keys=True, separators=(",", ":")).encode("utf-8"))
+            canonical["record_hash"] = record_hash
+            with self.ledger_path.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(canonical, sort_keys=True) + "\n")
+            return LedgerEvent(**canonical)
 
     def validate_chain(self) -> tuple[bool, str]:
         prev = "GENESIS"
