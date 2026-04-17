@@ -1,0 +1,25 @@
+{
+  "name": "traceys-sentinel",
+  "version": "0.2.0",
+  "description": "Permissioned digital chain-of-custody platform for forensic evidence handling",
+  "main": "app/main.py",
+  "scripts": {
+    "dev": "run-dev.bat",
+    "start": "run-start.bat",
+    "test": ".venv/Scripts/python.exe -m pytest tests/ -v",
+    "install-deps": ".venv/Scripts/pip.exe install -r requirements.txt"
+  },
+  "keywords": [
+    "forensic",
+    "evidence",
+    "chain-of-custody",
+    "security",
+    "ledger"
+  ],
+  "author": "Tracey's Sentinel Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/traceys-sentinel"
+  }
+}

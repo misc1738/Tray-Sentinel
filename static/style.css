@@ -1,51 +1,51 @@
 /* Tracey's Sentinel - Multi-Theme Professional UI 2026 */
 
 :root {
-    /* ===== PROFESSIONAL BLUE THEME (Default) ===== */
-    /* Primary Colors - Corporate Blue */
-    --primary: #0056CC;
-    --primary-dark: #003BA8;
-    --primary-light: rgba(0, 86, 204, 0.12);
-    --primary-glow: rgba(0, 86, 204, 0.25);
+    /* ===== DARK CYBERSECURITY THEME (Default) - Modern Cyan/Teal ===== */
+    /* Primary Colors - Vibrant Cyan/Teal */
+    --primary: #06D6A0;
+    --primary-dark: #039D79;
+    --primary-light: rgba(6, 214, 160, 0.12);
+    --primary-glow: rgba(6, 214, 160, 0.25);
     
     /* Secondary Colors */
-    --secondary: #1f71b8;
-    --accent: #0078D4;
+    --secondary: #14B8A6;
+    --accent: #06D6A0;
     
     /* Alert Colors */
-    --danger: #D23636;
-    --danger-dark: #B81D13;
-    --success: #107C10;
-    --warning: #FFB900;
-    --info: #0078D4;
+    --danger: #FF6B6B;
+    --danger-dark: #DC2626;
+    --success: #06D6A0;
+    --warning: #FFB84D;
+    --info: #4C9AFF;
     
     /* Text Colors */
-    --text: #262626;
-    --text-secondary: #5E5E5E;
-    --text-tertiary: #7A7A7A;
+    --text: #E8EAED;
+    --text-secondary: #A8AEBF;
+    --text-tertiary: #7A8191;
     
-    /* Background Colors */
-    --bg-primary: #F3F2F1;
-    --bg-secondary: #FFFFFF;
-    --bg-tertiary: #F7F7F7;
-    --bg-card: rgba(255, 255, 255, 0.95);
-    --bg-hover: rgba(0, 86, 204, 0.06);
+    /* Background Colors - Deep Navy Blues */
+    --bg-primary: #0a0e27;
+    --bg-secondary: #111827;
+    --bg-tertiary: #1a1f3a;
+    --bg-card: rgba(17, 24, 39, 0.8);
+    --bg-hover: rgba(6, 214, 160, 0.08);
     
     /* Border Colors */
-    --border: rgba(0, 86, 204, 0.15);
-    --border-light: rgba(0, 86, 204, 0.08);
-    --border-hover: rgba(0, 86, 204, 0.3);
+    --border: rgba(6, 214, 160, 0.2);
+    --border-light: rgba(6, 214, 160, 0.1);
+    --border-hover: rgba(6, 214, 160, 0.4);
     
     /* Shadows & Effects */
     
     /* Shadow & Glow */
-    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.08);
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.1);
-    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
-    --shadow-lg: 0 8px 24px rgba(0, 86, 204, 0.12);
-    --shadow-xl: 0 12px 40px rgba(0, 86, 204, 0.15);
-    --glow: 0 0 20px rgba(0, 86, 204, 0.2);
-    --glow-sm: 0 0 12px rgba(0, 86, 204, 0.1);
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+    --shadow-lg: 0 8px 24px rgba(6, 214, 160, 0.15);
+    --shadow-xl: 0 12px 40px rgba(6, 214, 160, 0.2);
+    --glow: 0 0 20px rgba(6, 214, 160, 0.3);
+    --glow-sm: 0 0 12px rgba(6, 214, 160, 0.2);
     
     /* Transitions */
     --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -1127,7 +1127,7 @@ textarea:focus {
 
 /* =============== UPLOAD ZONE =============== */
 .upload-zone {
-    background: linear-gradient(135deg, var(--primary) 0.08), var(--primary) 0.04));
+    background: linear-gradient(135deg, rgba(6, 214, 160, 0.08), rgba(6, 214, 160, 0.04));
     border: 2px dashed var(--primary);
     border-radius: var(--border-radius);
     padding: 0;
@@ -1148,7 +1148,7 @@ textarea:focus {
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at center, var(--primary) 0.15), transparent);
+    background: radial-gradient(circle at center, rgba(6, 214, 160, 0.15), transparent);
     opacity: 0;
     transition: opacity 0.3s;
     pointer-events: none;
@@ -1156,7 +1156,7 @@ textarea:focus {
 
 .upload-zone:hover {
     border-color: var(--secondary);
-    background: linear-gradient(135deg, var(--primary) 0.12), var(--primary) 0.08));
+    background: linear-gradient(135deg, rgba(6, 214, 160, 0.12), rgba(6, 214, 160, 0.08));
     box-shadow: var(--shadow-md), var(--glow-sm);
 }
 
@@ -1166,7 +1166,7 @@ textarea:focus {
 
 .upload-zone.dragover {
     border-color: var(--secondary);
-    background: linear-gradient(135deg, var(--primary) 0.15), var(--primary) 0.12));
+    background: linear-gradient(135deg, rgba(6, 214, 160, 0.15), rgba(6, 214, 160, 0.12));
     box-shadow: var(--shadow-lg), var(--glow);
     transform: scale(1.02);
 }

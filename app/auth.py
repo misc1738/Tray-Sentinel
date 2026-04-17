@@ -26,37 +26,37 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 # Prototype identity provider (demo users with bcrypt hashes).
 # In production this would be replaced by OIDC + mTLS client certs + org CA.
-# Default passwords: officer1->pass123, analyst1->pass123, etc.
+# Default passwords: all demo users use "demo123" for testing
 USERS: dict[str, dict[str, str]] = {
     "officer1": {
         "role": Role.FIELD_OFFICER.value,
         "org_id": "KPS",
-        "password_hash": "$2b$12$2SsdKP9.ZqKTslgyB/oy7evSLHW48rsHz0dyv7bXuDLNmxUk0W9DO",  # bcrypt(pass123)
+        "password_hash": "$2b$12$xTIEmCNl1pJMLmXXx5Jv.eWV4Af8Kx6ukqNYJghSeI98YWlviKvsG",  # bcrypt(demo123)
     },
     "analyst1": {
         "role": Role.FORENSIC_ANALYST.value,
         "org_id": "FORENSIC_LAB",
-        "password_hash": "$2b$12$2SsdKP9.ZqKTslgyB/oy7evSLHW48rsHz0dyv7bXuDLNmxUk0W9DO",
+        "password_hash": "$2b$12$xTIEmCNl1pJMLmXXx5Jv.eWV4Af8Kx6ukqNYJghSeI98YWlviKvsG",
     },
     "supervisor1": {
         "role": Role.SUPERVISOR.value,
         "org_id": "KPS",
-        "password_hash": "$2b$12$2SsdKP9.ZqKTslgyB/oy7evSLHW48rsHz0dyv7bXuDLNmxUk0W9DO",
+        "password_hash": "$2b$12$xTIEmCNl1pJMLmXXx5Jv.eWV4Af8Kx6ukqNYJghSeI98YWlviKvsG",
     },
     "prosecutor1": {
         "role": Role.PROSECUTOR.value,
         "org_id": "ODPP",
-        "password_hash": "$2b$12$2SsdKP9.ZqKTslgyB/oy7evSLHW48rsHz0dyv7bXuDLNmxUk0W9DO",
+        "password_hash": "$2b$12$xTIEmCNl1pJMLmXXx5Jv.eWV4Af8Kx6ukqNYJghSeI98YWlviKvsG",
     },
     "judge1": {
         "role": Role.JUDGE.value,
         "org_id": "JUDICIARY",
-        "password_hash": "$2b$12$2SsdKP9.ZqKTslgyB/oy7evSLHW48rsHz0dyv7bXuDLNmxUk0W9DO",
+        "password_hash": "$2b$12$xTIEmCNl1pJMLmXXx5Jv.eWV4Af8Kx6ukqNYJghSeI98YWlviKvsG",
     },
     "auditor1": {
         "role": Role.SYSTEM_AUDITOR.value,
         "org_id": "INTERNAL_AUDIT",
-        "password_hash": "$2b$12$2SsdKP9.ZqKTslgyB/oy7evSLHW48rsHz0dyv7bXuDLNmxUk0W9DO",
+        "password_hash": "$2b$12$xTIEmCNl1pJMLmXXx5Jv.eWV4Af8Kx6ukqNYJghSeI98YWlviKvsG",
     },
 }
 

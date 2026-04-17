@@ -443,6 +443,7 @@ function switchTab(tabName) {
     // Load data if needed
     if (tabName === 'analytics') loadAnalyticsDashboard();
     if (tabName === 'health') loadHealthMonitor();
+    if (tabName === 'scanner') loadScannerStatistics();
 }
 
 // ===== HOME DASHBOARD =====
@@ -1023,28 +1024,54 @@ function renderTimeline(events) {
 // ===== QR SCANNER =====
 async function startScanner() {
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        const video = document.getElementById('video');
-        video.srcObject = stream;
-        video.play();
+        const videoElement = document.getElementById('video');
+        if (!videoElement) {
+            alert('Video element not found');
+            return;
+        }
+
+        // Request camera access
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } } 
+        });
+        
+        videoElement.srcObject = stream;
+        await videoElement.play();
+
+        // Initialize and start QR Scanner
+        if (typeof QrScanner === 'undefined') {
+            alert('QR Scanner library not loaded. Please refresh the page.');
+            return;
+        }
+
         qrScanner = new QrScanner(
-            video,
+            videoElement,
             result => {
+                // Successfully scanned a QR code
                 stopScanner();
-                const match = result.data.match(/^evidence:(.+)$/);
+                const data = result.data || result;
+                const match = String(data).match(/^evidence:(.+)$/) || String(data).match(/^(.{8}-.{4}-.{4}-.{4}-.{12})$/);
                 if (match) {
                     loadEvidence(match[1]);
                 } else {
-                    alert('Invalid QR code format');
+                    showNotification('Invalid QR code format. Expected format: evidence:ID or UUID', 'warning');
                 }
             },
-            { highlightScanRegion: false, highlightCodeOutline: false }
+            { 
+                preferredCamera: 'environment',
+                highlightScanRegion: true, 
+                highlightCodeOutline: true,
+                maxScansPerSecond: 5
+            }
         );
+        
         await qrScanner.start();
         document.getElementById('start-scan').disabled = true;
         document.getElementById('stop-scan').disabled = false;
+        showNotification('Camera started. Point at a QR code to scan.', 'info');
     } catch (e) {
-        alert('Camera error: ' + e.message);
+        showNotification('Camera error: ' + e.message, 'danger');
+        console.error('Scanner error:', e);
     }
 }
 
@@ -1054,13 +1081,28 @@ function stopScanner() {
         qrScanner = null;
     }
     const video = document.getElementById('video');
-    const stream = video.srcObject;
-    if (stream) {
+    if (video && video.srcObject) {
+        const stream = video.srcObject;
         stream.getTracks().forEach(t => t.stop());
         video.srcObject = null;
     }
     document.getElementById('start-scan').disabled = false;
     document.getElementById('stop-scan').disabled = true;
+    showNotification('Camera stopped.', 'info');
+}
+
+async function loadScannerStatistics() {
+    try {
+        const response = await fetch('/evidence/summary');
+        if (response.ok) {
+            const data = await response.json();
+            document.getElementById('scanner-total-evidence').textContent = data.total_evidence || 0;
+            document.getElementById('scanner-active-cases').textContent = data.active_cases || 0;
+            document.getElementById('scanner-recent-evidence').textContent = data.recent_evidence || 0;
+        }
+    } catch (e) {
+        console.error('Failed to load scanner statistics:', e);
+    }
 }
 
 // ===== FILE UPLOAD =====
